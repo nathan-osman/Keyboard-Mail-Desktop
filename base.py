@@ -1,11 +1,12 @@
 # Keyboard Mail Daemon
-# Version: 		0.0.5
+# Version: 		0.0.6
 # Date:			April 26th, 2015
-# Contributors:	Nathanael Olander
+# Contributors:	RPiAwesomeness
 """Changelog:
 		Introduced the eMessage class that allows for reusable message
 		code. It currently accepts only sends the message.
-		Git version, removed private details & replaced with placeholders
+		Initial git version, removed private details and replaced with
+		input() for anything that should remain private
 """
 
 import smtplib
