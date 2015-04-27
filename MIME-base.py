@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.9
+# Version: 		0.0.10
 # Date:			April 26th, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Started work on HTML formatting of messages.
-		Still trying to resolve why the server.send_message() function
-		is sending QUIT prior to actually sending the message body.
-		Also, this commit is to close issue #1, should have been
-		"closed" last commit.
+		Basic HTML formatting works, but we're still currently resolving
+		the bug where SMTP/server.send_message() is sending QUIT too soon
+		and not actually sending the message body.
 """
 
 import smtplib
@@ -60,7 +58,7 @@ def send(fromaddr, toaddrs, msg):
 		server.ehlo()
 		server.starttls()
 		server.login(credsUSER, credsPASS)
-		server.send_message(fromaddr, toaddrs, msg)
+		server.send_message(msg, fromaddr, toaddrs)
 	#except Exception as e:
 	#	print('except')
 	#	print(e.args[0])
