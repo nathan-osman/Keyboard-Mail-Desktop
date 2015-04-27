@@ -47,56 +47,50 @@ def prompt(prompt):
 	return input(prompt).strip()
 
 def send(fromaddr, toaddrs, msg):
-	
-	print('Send reached')
-	print(fromaddr, toaddrs)
-	
-	try:
-		print('try')
-		with smtplib.SMTP("mail.google.com:587") as server:
-			server.ehlo()
-			print("ehlo()")
-			server.starttls()
-			print("tls")
-			server.login(credsUSER, credsPASS)
-			print("login")
-			server.set_debuglevel(1)
-			print("Debug Level")
-			server.sendmail(fromaddr, toaddrs, msg.as_string())
-	except Exception as e:
-		print('except')
-		print(e.args[0])
-		print(e.args)
-		if len(e.args) >= 2:
-			print(bytes.decode(e.args[1]))
+	# Currently debugging a bug caused by server.sendmail()
+	# Disabled the try/except statements so I can get debugging information
+	#try:
+	with smtplib.SMTP('smtp.gmail.com:587') as server:
+		server.set_debuglevel(1)
+		server.ehlo()
+		server.starttls()
+		server.login(credsUSER, credsPASS)
+		server.sendmail(fromaddr, toaddrs, msg)
+	#except Exception as e:
+	#	print('except')
+	#	print(e.args[0])
+	#	print(e.args)
 
 if __name__ =='__main__':
 
 	msg = MIMEMultipart('alternative')
-	msg['Subject']	= prompt("Subject: ")
-	msg['From']		= prompt("From: ")
-	msg['To']		= prompt("To: ").split()
+	msg['Subject']	= input("Subject: ")
+	msg['From']		= input("From: ")
+	msg['To']		= input("To: ").split()
 	#fromaddr 	= prompt("From: ")
-	#toaddrs		= prompt("To: ").split()	# If you hard-program, it must be a list
+	#toaddrs	= prompt("To: ").split()	# If you hard-program, it must be a list
 	#subject 	= prompt("Subject: ")
 	#Deprecated with introduction of MIME
 	
 	print ('Enter message, end with ^D (Unix/Linux) or ^Z (Windows):')
 	
 	text = ''
-	html = '<html><head></head><body><p>'
+	html = '<html><head></head><body>'
 			
 	while True:
 		try:
 			line = input()
 		except EOFError:
 			break
+		text = text + line
+		html += '<p>'+line+'</p>'
 		text = text + '\n' + line
-		html += text+'</p>'
 	#print ("Message length is",len(text))
 	#print ("Message is:",text)
 	
-	html += '</body></html>'
+	html += '</p></body></html>'
+	
+	print(html)
 	
 	partPLAINTEXT	= MIMEText(text, 'plain')
 	partHTML		= MIMEText(html, 'html')
