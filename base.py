@@ -1,15 +1,17 @@
 # Keyboard Mail Daemon
-# Version: 		0.0.6
+# Version: 		0.0.7
 # Date:			April 26th, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Introduced the eMessage class that allows for reusable message
-		code. It currently accepts only sends the message.
-		Initial git version, removed private details and replaced with
-		input() for anything that should remain private
+		Introduced credential storage method of credentials.py variables
+		being imported and used.
+		
+		Username/password are now stored in credentials.py and are
+		accessible via credsUSER and credsPASS respectively.
 """
 
 import smtplib
+from credentials import USERNAME as credsUSER, PASSWORD as credsPASS
 
 class eMessage:
 	
@@ -20,15 +22,15 @@ class eMessage:
 		self.content  = content
 	
 	def send(self):
-		username 	= input('GMail username: ')
-		pswd		= input('Password: ')
+		#username 	= input('GMail username: ')
+		#pswd		= input('Password: ')
+		# Deprecated by credential storage method 
+		#(from credentials import USERNAME, PASSWORD)
 		try:
 			with smtplib.SMTP('smtp.gmail.com:587') as server:
 				server.ehlo()
 				server.starttls()
-				# Make sure to change these if you're testing this code
-				# They're your Gmail username & password
-				server.login(username, pswd)
+				server.login(credsUSER, credsPASS)
 				server.set_debuglevel(1)
 				server.sendmail(self.fromaddr, self.to, self.content)
 	
@@ -46,15 +48,14 @@ def prompt(prompt):
 	return input(prompt).strip()
 
 fromaddr 	= prompt("From: ")
-toaddrs		= prompt("To: ").split()
+toaddrs		= prompt("To: ").split()	# If you hard-program, it must be a list
 subject 	= prompt("Subject: ")
-#fromaddr 	= 'YOUREMAIL@SITE.COM'
-#toaddrs	= ['RECIPIENT@SITE.COM']
-#subject	= 'Subject'
 
 print ("Enter message, end with ^D (Unix/Linux) or ^Z (Windows):")
+
 # Add the From: and To: headers to the start
-content = ""			
+content = ""	
+		
 while True:
 	try:
 		line = input()
