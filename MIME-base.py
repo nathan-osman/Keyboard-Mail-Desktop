@@ -50,9 +50,11 @@ def prompt(prompt):
 	return input(prompt).strip()
 
 def send(fromaddr, toaddrs, msg):
-	# Currently debugging a bug caused by server.sendmail()
+	# Currently debugging a bug caused by server.send_message()
 	# Disabled the try/except statements so I can get debugging information
 	#try:
+	print(type(toaddrs))
+	print(toaddrs)
 	with smtplib.SMTP('smtp.gmail.com:587') as server:
 		server.set_debuglevel(1)
 		server.ehlo()
@@ -67,9 +69,10 @@ def send(fromaddr, toaddrs, msg):
 if __name__ =='__main__':
 
 	msg = MIMEMultipart('alternative')
-	msg['Subject']	= input("Subject: ")
-	msg['From']		= input("From: ")
-	msg['To']		= input("To: ").split()
+	msg['Subject']	= input('Subject: ')
+	msg['From']		= input('From: ')
+	recipients		= input('To: ').split()
+	msg['To']		= ', '.join(recipients)
 	#fromaddr 	= prompt("From: ")
 	#toaddrs	= prompt("To: ").split()	# If you hard-program, it must be a list
 	#subject 	= prompt("Subject: ")
