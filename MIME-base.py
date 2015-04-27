@@ -5,66 +5,39 @@
 # Date:			April 26th, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Basic HTML formatting works, but we're still currently resolving
-		the bug where SMTP/server.send_message() is sending QUIT too soon
-		and not actually sending the message body.
+		Basic HTML formatting has been successfully added as well as the
+		freeze bugs removed.
+		As far as I know, the program should work correctly - the only
+		thing that hasn't been yet confirmed is if multiple recipients
+		are working. However, it is fairly certain that it is, so I'm
+		going ahead with the commit.
+		I'm also removing any deprecated code, including the entire
+		EMessage class (RIP my dear friend, you served me well) and any
+		reference to that class or functions within that class.
+		If there is any need to reference that code in the future, please
+		refer back to the commit history.
 """
 
 import smtplib
 from credentials import USERNAME as credsUSER, PASSWORD as credsPASS
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
-# EMessage class deprecated by use of email.mime module
-"""class EMessage:
-	
-	def __init__(self, fromaddr, toaddrs, subject):
-		self.fromaddr = fromaddr
-		self.toaddrs  = toaddrs
-		self.subject  = subject
-	
-	def send(self, msg):
-		#username 	= input('GMail username: ')
-		#pswd		= input('Password: ')
-		# Deprecated by credential storage method 
-		#(from credentials import USERNAME, PASSWORD)
-		#try:
-			#with smtplib.SMTP('smtp.gmail.com:587') as server:
-				#server.ehlo()
-				#server.starttls()
-				#server.login(credsUSER, credsPASS)
-				#server.set_debuglevel(1)
-				#server.sendmail(self.fromaddr, self.toaddrs, content)
-	
-		#except Exception as e:
-			#print(e.args[0])
-			#if len(e.args) >= 2:
-				#print(bytes.decode(e.args[1]))
-		quit
-	
-	def formatMessage(self, content):
-		return 'From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s' % (self.fromaddr, 
-				', '.join(self.toaddrs), self.subject, content)"""
 				
 def prompt(prompt):
 	return input(prompt).strip()
 
 def send(fromaddr, toaddrs, msg):
-	# Currently debugging a bug caused by server.send_message()
-	# Disabled the try/except statements so I can get debugging information
-	#try:
-	print(type(toaddrs))
-	print(toaddrs)
-	with smtplib.SMTP('smtp.gmail.com:587') as server:
-		server.set_debuglevel(1)
-		server.ehlo()
-		server.starttls()
-		server.login(credsUSER, credsPASS)
-		server.send_message(msg, fromaddr, toaddrs)
-	#except Exception as e:
-	#	print('except')
-	#	print(e.args[0])
-	#	print(e.args)
+
+	try:
+		with smtplib.SMTP('smtp.gmail.com:587') as server:
+			server.set_debuglevel(1)
+			server.ehlo()
+			server.starttls()
+			server.login(credsUSER, credsPASS)
+			server.send_message(msg, fromaddr, toaddrs)
+	except Exception as e:
+		print(e.args[0])
+		print(e.args)
 
 if __name__ =='__main__':
 
@@ -73,10 +46,6 @@ if __name__ =='__main__':
 	msg['From']		= input('From: ')
 	recipients		= input('To: ').split()
 	msg['To']		= ', '.join(recipients)
-	#fromaddr 	= prompt("From: ")
-	#toaddrs	= prompt("To: ").split()	# If you hard-program, it must be a list
-	#subject 	= prompt("Subject: ")
-	#Deprecated with introduction of MIME
 	
 	print ('Enter message, end with ^D (Unix/Linux) or ^Z (Windows):')
 	
@@ -98,12 +67,6 @@ if __name__ =='__main__':
 	
 	msg.attach(partPLAINTEXT)
 	msg.attach(partHTML)
-	
-	# Deprecated by use of email.mime module	
-	#msg = EMessage(fromaddr, toaddrs, subject)
-	#print(msg)	
-	#body = msg.formatMessage(content)
-	#print (body)
 		
 	fromaddr = msg['From']
 	toaddrs  = msg['To']

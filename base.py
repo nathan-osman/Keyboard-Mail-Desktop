@@ -1,87 +1,75 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.8
+# Version: 		0.0.10
 # Date:			April 26th, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Moved formatMessage() into the EMessage class to make it look
-		better, re-arraigned the calls to initialize the msg object
-		and to format the body of the email to work with the new system.
-		
-		Added "if __name__ == '__main__':" clause to make sure that
-		the main code is only executed if the program is called, not if
-		it is imported as a module, something it probably will be in
-		the future.
+		Basic HTML formatting has been successfully added as well as the
+		freeze bugs removed.
+		As far as I know, the program should work correctly - the only
+		thing that hasn't been yet confirmed is if multiple recipients
+		are working. However, it is fairly certain that it is, so I'm
+		going ahead with the commit.
+		I'm also removing any deprecated code, including the entire
+		EMessage class (RIP my dear friend, you served me well) and any
+		reference to that class or functions within that class.
+		If there is any need to reference that code in the future, please
+		refer back to the commit history.
 """
 
 import smtplib
 from credentials import USERNAME as credsUSER, PASSWORD as credsPASS
-#from email.mime.multipart import MIMEMultipart
-#from email.mime.text import MIMEText
-# Used for next change in which I introduce HTML formatting of the 
-# 	message
-
-class EMessage:
-	
-	def __init__(self, fromaddr, toaddrs, subject):
-		self.fromaddr = fromaddr
-		self.toaddrs  = toaddrs
-		self.subject  = subject
-	
-	def send(self, content):
-		#username 	= input('GMail username: ')
-		#pswd		= input('Password: ')
-		# Deprecated by credential storage method 
-		#(from credentials import USERNAME, PASSWORD)
-		try:
-			with smtplib.SMTP('smtp.gmail.com:587') as server:
-				server.ehlo()
-				server.starttls()
-				server.login(credsUSER, credsPASS)
-				server.set_debuglevel(1)
-				server.sendmail(self.fromaddr, self.toaddrs, content)
-	
-		except Exception as e:
-			print(e.args[0])
-			if len(e.args) >= 2:
-				print(bytes.decode(e.args[1]))
-	
-	def formatMessage(self, content):
-		rtrnMsg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s"
-				% (self.fromaddr, ", ".join(self.toaddrs), self.subject,
-						content))
-		return rtrnMsg
-		
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 				
 def prompt(prompt):
 	return input(prompt).strip()
 
+def send(fromaddr, toaddrs, msg):
+
+	try:
+		with smtplib.SMTP('smtp.gmail.com:587') as server:
+			server.set_debuglevel(1)
+			server.ehlo()
+			server.starttls()
+			server.login(credsUSER, credsPASS)
+			server.send_message(msg, fromaddr, toaddrs)
+	except Exception as e:
+		print(e.args[0])
+		print(e.args)
+
 if __name__ =='__main__':
 
-	fromaddr 	= prompt("From: ")
-	toaddrs		= prompt("To: ").split()	# If you hard-program, it must be a list
-	subject 	= prompt("Subject: ")
+	msg = MIMEMultipart('alternative')
+	msg['Subject']	= input('Subject: ')
+	msg['From']		= input('From: ')
+	recipients		= input('To: ').split()
+	msg['To']		= ', '.join(recipients)
 	
-	print ("Enter message, end with ^D (Unix/Linux) or ^Z (Windows):")
+	print ('Enter message, end with ^D (Unix/Linux) or ^Z (Windows):')
 	
-	# Add the From: and To: headers to the start
-	content = ""	
+	text = ''
+	html = '<html><head></head><body>'
 			
 	while True:
 		try:
 			line = input()
 		except EOFError:
 			break
-		content = content + '\n' + line
-	#print ("Message length is",len(content))
-	#print ("Message is:",content)
+		text = text + '\n' + line	# Basic text of email
+		html += '<p>'+line+'</p>'	# HTML version with <p> tags added around line
 	
-	msg = EMessage(fromaddr, toaddrs, subject)
-	#print(msg)
+	html += '</body></html>'	# Once loop is complete, close all the tags
 	
-	body = msg.formatMessage(content)
-	#print (body)
+	partPLAINTEXT	= MIMEText(text, 'plain')
+	partHTML		= MIMEText(html, 'html')
 	
-	msg.send(body)
+	msg.attach(partPLAINTEXT)
+	msg.attach(partHTML)
+		
+	fromaddr = msg['From']
+	toaddrs  = msg['To']
+	
+	send(fromaddr, toaddrs, msg)
 
