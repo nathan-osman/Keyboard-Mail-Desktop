@@ -13,7 +13,8 @@ from credentials import USERNAME as credsUSER, PASSWORD as credsPASS
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-class EMessage:
+# EMessage class deprecated by use of email.mime module
+"""class EMessage:
 	
 	def __init__(self, fromaddr, toaddrs, subject):
 		self.fromaddr = fromaddr
@@ -41,7 +42,7 @@ class EMessage:
 	
 	def formatMessage(self, content):
 		return 'From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s' % (self.fromaddr, 
-				', '.join(self.toaddrs), self.subject, content)
+				', '.join(self.toaddrs), self.subject, content)"""
 				
 def prompt(prompt):
 	return input(prompt).strip()
@@ -55,7 +56,7 @@ def send(fromaddr, toaddrs, msg):
 		server.ehlo()
 		server.starttls()
 		server.login(credsUSER, credsPASS)
-		server.sendmail(fromaddr, toaddrs, msg)
+		server.send_message(fromaddr, toaddrs, msg)
 	#except Exception as e:
 	#	print('except')
 	#	print(e.args[0])
@@ -82,15 +83,10 @@ if __name__ =='__main__':
 			line = input()
 		except EOFError:
 			break
-		text = text + line
-		html += '<p>'+line+'</p>'
-		text = text + '\n' + line
-	#print ("Message length is",len(text))
-	#print ("Message is:",text)
+		text = text + '\n' + line	# Basic text of email
+		html += '<p>'+line+'</p>'	# HTML version with <p> tags added around line
 	
-	html += '</p></body></html>'
-	
-	print(html)
+	html += '</body></html>'	# Once loop is complete, close all the tags
 	
 	partPLAINTEXT	= MIMEText(text, 'plain')
 	partHTML		= MIMEText(html, 'html')
@@ -98,12 +94,12 @@ if __name__ =='__main__':
 	msg.attach(partPLAINTEXT)
 	msg.attach(partHTML)
 	
+	# Deprecated by use of email.mime module	
 	#msg = EMessage(fromaddr, toaddrs, subject)
-	#print(msg)
-	
+	#print(msg)	
 	#body = msg.formatMessage(content)
 	#print (body)
-	
+		
 	fromaddr = msg['From']
 	toaddrs  = msg['To']
 	
