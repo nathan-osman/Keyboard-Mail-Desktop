@@ -36,7 +36,7 @@ if __name__ =='__main__':
 	fromaddr 		= msg['From']			# From in its own string
 	
 	recipients		= input('To: ').split()	# All of the recipients in list form
-	msg['To'] 		= COMMASPACE.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
+	msg['To'] 		= ', '.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
 	
 	# Enter your email
 	print ('Enter message, end with ^D (Unix/Linux) or ^Z (Windows):')
