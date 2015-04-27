@@ -6,6 +6,10 @@
 # Contributors:	RPiAwesomeness
 """Changelog:
 		Started work on HTML formatting of messages.
+		Still trying to resolve why the server.send_message() function
+		is sending QUIT prior to actually sending the message body.
+		Also, this commit is to close issue #1, should have been
+		"closed" last commit.
 """
 
 import smtplib
