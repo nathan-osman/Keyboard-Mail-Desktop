@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.11
+# Version: 		0.0.11.1
 # Date:			April 27th, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
@@ -10,6 +10,8 @@
 		Still need to figure out how to send the message to multiple
 		recipients all at once, instead of the current method of one by
 		one.
+		Micro-fix (.1): Accidentally removed the COMMASPACE variable
+		and so line 39 (now 41) didn't work. That has been fixed.
 """
 
 import smtplib
