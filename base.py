@@ -35,7 +35,7 @@ def get_message_data():
 	msg['From']		= input('From: ')		# From
 	
 	recipients		= input('To: ').split()	# All of the recipients in list form
-	msg['To'] 		= ', '.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
+	msg['To'] 		= COMMASPACE.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
 	
 	msg['Date']		= str(formatdate(localtime=True))
 	
