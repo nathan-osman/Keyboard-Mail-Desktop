@@ -3,7 +3,9 @@ Repository for work on my Keyboard Mail project. This is the repository for the 
 
 ## Setup
 
-The setup process is fairly simple. All that is required is
+The setup process is fairly simple if you're on Ubuntu. You may need to change the steps as needed for other Linux distros. Windows instructions will not be coming until later in the release cycle - perhaps on the initial beta release.
+
+All that is required is
 
 * Python 3 (3.4 is what I'm developing on, but any 3.x version should (*in theory*) work.
 * tkinter for Python 3. This can be installed via `sudo apt-get install python3-tk` on Ubuntu, the command will vary between distros.
