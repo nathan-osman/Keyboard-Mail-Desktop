@@ -1,14 +1,16 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.14
-# Date:			April 29th, 2015
+# Version: 		0.0.15
+# Date:			May 1st, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
 		Changed so the file chooser dialog now simply comes up, no longer
-		requires the initial GUI with the button. Not working - the dialog
-		stays visible after the user has chosen their file and the code
-		continues executing.
+		requires the initial GUI with the button.
+		Changed the GUI manager from GTK to Tkinter simply because it
+		was easier to do for the simple task that it currently handles.
+		I will change back to GTK when I start on the actual GUI for
+		Keyboard Mail.
 """
 
 import smtplib, imaplib, mimetypes, sys, os, io
@@ -21,59 +23,14 @@ from email.mime.image		import MIMEImage
 from email.mime.base		import MIMEBase
 from email.utils 			import COMMASPACE, formatdate
 
-from gi.repository			import Gtk
+# Tkinter GUI imports
+import tkinter
+from tkinter import filedialog
 
 # Custom Modules
 from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
 
 #-----------------------------------------------------------------------
-
-global path
-
-class FileChooser():
-	
-	def __init__(self):
-		
-		self.path = ''
-		
-		dia = Gtk.FileChooserDialog("Please choose a file", None,
-			Gtk.FileChooserAction.OPEN,
-			(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-			 Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-
-		self.add_filters(dia)
-
-		response = dia.run()
-		
-		if response == Gtk.ResponseType.OK:
-			print("Open clicked")
-			print("File selected: " + dia.get_filename())
-			self.path = dia.get_filename()
-		elif response == Gtk.ResponseType.CANCEL:
-			print("Cancel clicked")
-		
-		dia.hide()
-	
-	def add_filters(self, dia):
-		filter_any = Gtk.FileFilter()
-		filter_any.set_name("Any files")
-		filter_any.add_pattern("*")
-		dia.add_filter(filter_any)
-		
-		filter_text = Gtk.FileFilter()
-		filter_text.set_name('Text files')
-		filter_text.add_mime_type('text/plain')
-		dia.add_filter(filter_text)
-		
-		filter_py = Gtk.FileFilter()
-		filter_py.set_name('Python files')
-		filter_py.add_mime_type('text/x-python')
-		dia.add_filter(filter_py)
-		
-		filter_img = Gtk.FileFilter()
-		filter_img.set_name('Image')
-		filter_img.add_mime_type('image/*')
-		dia.add_filter(filter_img)
 
 def prompt(prompt):
 	return input(prompt).strip()
@@ -122,15 +79,14 @@ def content_setup(text, html):
 	
 def setup_attachment():
 	
-	dialog = FileChooser()
+	root = tkinter.Tk()
+	root.withdraw()
 	
-	path = dialog.path
+	path = filedialog.askopenfilename()
 	
 	return path
 	
 def msg_setup(path):
-	msg = MIMEMultipart('mixed')	# Initialize overarching message as msg
-	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the email
 	
 	ctype, encoding = mimetypes.guess_type(path)
 	if ctype is None or encoding is not None:
@@ -157,15 +113,18 @@ def msg_setup(path):
 	
 	partPLAINTEXT, partHTML = content_setup(text, html)	# Get the message parts (plaintext and HTML) for MIME
 	
-	return partPLAINTEXT, partHTML
+	return partPLAINTEXT, partHTML, attachment
 
 if __name__ =='__main__':
 	
-	global attachment, server
+	global attachment, server, msg
+	
+	msg = MIMEMultipart('mixed')	# Initialize overarching message as msg
+	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the email
 	
 	path = setup_attachment()
 	
-	pathPLAINTEXT, partHTML = msg_setup(path)
+	partPLAINTEXT, partHTML, attachment = msg_setup(path)
 	
 	content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
 	content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
