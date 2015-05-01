@@ -1,16 +1,17 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.13
+# Version: 		0.0.14
 # Date:			April 29th, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Added attachment capabilties (still under work):
-		> Added file chooser dialog (still needs work with the GUI)
-		> Added ability to send any form of file (complete)
+		Changed so the file chooser dialog now simply comes up, no longer
+		requires the initial GUI with the button. Not working - the dialog
+		stays visible after the user has chosen their file and the code
+		continues executing.
 """
 
-import smtplib, mimetypes, sys, os
+import smtplib, imaplib, mimetypes, sys, os, io
 
 from email					import encoders
 from email.mime.multipart 	import MIMEMultipart
@@ -27,70 +28,53 @@ from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
 
 #-----------------------------------------------------------------------
 
-class FileChooserWindow(Gtk.Window):
+global path
+
+class FileChooser():
 	
 	def __init__(self):
-		Gtk.Window.__init__(self, title="Keyboard Mail - Select Attachment")
 		
-		box = Gtk.Box(spacing=6)
-		self.add(box)
+		self.path = ''
 		
-		button1 = Gtk.Button("Select File")
-		button1.connect("clicked", self.on_file_clicked)
-		box.add(button1)
-	
-	def on_file_clicked(self, widget):
-		
-		global path
-		
-		dialog = Gtk.FileChooserDialog("Please choose a file", self,
+		dia = Gtk.FileChooserDialog("Please choose a file", None,
 			Gtk.FileChooserAction.OPEN,
 			(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
 			 Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+
+		self.add_filters(dia)
+
+		response = dia.run()
 		
-		self.add_filters(dialog)
-	
-		response = dialog.run()
 		if response == Gtk.ResponseType.OK:
 			print("Open clicked")
-			print("File selected: " + dialog.get_filename())
-			path = dialog.get_filename()
-			dialog.destroy()
+			print("File selected: " + dia.get_filename())
+			self.path = dia.get_filename()
 		elif response == Gtk.ResponseType.CANCEL:
 			print("Cancel clicked")
-			dialog.destroy()		
+		
+		dia.hide()
 	
-	def add_filters(self, dialog):
+	def add_filters(self, dia):
 		filter_any = Gtk.FileFilter()
 		filter_any.set_name("Any files")
 		filter_any.add_pattern("*")
-		dialog.add_filter(filter_any)
+		dia.add_filter(filter_any)
 		
 		filter_text = Gtk.FileFilter()
 		filter_text.set_name('Text files')
 		filter_text.add_mime_type('text/plain')
-		dialog.add_filter(filter_text)
+		dia.add_filter(filter_text)
 		
 		filter_py = Gtk.FileFilter()
 		filter_py.set_name('Python files')
 		filter_py.add_mime_type('text/x-python')
-		dialog.add_filter(filter_py)
-		
-		filter_png = Gtk.FileFilter()
-		filter_png.set_name('PNG images')
-		filter_png.add_mime_type('image/png')
-		dialog.add_filter(filter_png)
-		
-		filter_bmp = Gtk.FileFilter()
-		filter_bmp.set_name('BMP images')
-		filter_bmp.add_mime_type('image/bmp')
-		dialog.add_filter(filter_bmp)
+		dia.add_filter(filter_py)
 		
 		filter_img = Gtk.FileFilter()
 		filter_img.set_name('Image')
 		filter_img.add_mime_type('image/*')
-		dialog.add_filter(filter_img)
-		
+		dia.add_filter(filter_img)
+
 def prompt(prompt):
 	return input(prompt).strip()
 
@@ -135,16 +119,16 @@ def content_setup(text, html):
 	partHTML		= MIMEText(html, 'html')	# Create MIMEText object for the HTML version of the body
 	
 	return partPLAINTEXT, partHTML
-
-if __name__ =='__main__':
 	
-	global attachment, server
+def setup_attachment():
 	
-	win = FileChooserWindow()
-	win.connect("delete-event", Gtk.main_quit)
-	win.show_all()
-	Gtk.main()
+	dialog = FileChooser()
 	
+	path = dialog.path
+	
+	return path
+	
+def msg_setup(path):
 	msg = MIMEMultipart('mixed')	# Initialize overarching message as msg
 	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the email
 	
@@ -173,11 +157,21 @@ if __name__ =='__main__':
 	
 	partPLAINTEXT, partHTML = content_setup(text, html)	# Get the message parts (plaintext and HTML) for MIME
 	
+	return partPLAINTEXT, partHTML
+
+if __name__ =='__main__':
+	
+	global attachment, server
+	
+	path = setup_attachment()
+	
+	pathPLAINTEXT, partHTML = msg_setup(path)
+	
 	content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
 	content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
 	
 	msg.attach(content)			# Attach the content to the message
-	msg.attach(attachment)		# Attach the attachment to the message
+	msg.attach(attachment)		# Attach the attachment to the message	
 	
 	# Set up connection to server so we don't have repeat it each time
 	try:
