@@ -1,16 +1,14 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.15
+# Version: 		0.0.16
 # Date:			May 1st, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Changed so the file chooser dialog now simply comes up, no longer
-		requires the initial GUI with the button.
-		Changed the GUI manager from GTK to Tkinter simply because it
-		was easier to do for the simple task that it currently handles.
-		I will change back to GTK when I start on the actual GUI for
-		Keyboard Mail.
+		Uber minor change, removed the From: prompt after asking for subject 
+		since it doesn't actually affect anything other than the MIME
+		header. The *true* from is set by the server when you send the
+		message.
 """
 
 import smtplib, imaplib, mimetypes, sys, os, io
@@ -47,9 +45,9 @@ def get_message_data():
 	global recipients
 	
 	msg['Subject']	= input('Subject: ')	# Subject	
-	msg['From']		= input('From: ')		# From	
+	msg['From']		= credsUSER				# From - set by the credential.py file
 	recipients		= input('To: ').split()	# All of the recipients in list form
-	msg['To'] 		= COMMASPACE.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.	
+	msg['To'] 		= COMMASPACE.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
 	msg['Date']		= str(formatdate(localtime=True))
 	
 	# Enter your email
