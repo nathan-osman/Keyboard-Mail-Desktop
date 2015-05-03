@@ -216,7 +216,7 @@ if __name__ =='__main__':
 	
 	attached = False
 	
-	logPath = ('data/'+time.strftime("%d-%m-%Y")+'_'+time.strftime("%I-%M-%S %p"))
+	logPath = ('data/'+time.strftime("%d-%m-%Y")+'_'+time.strftime("%I-%M-%S %p")+'.log')
 	
 	logging.basicConfig(
 		format='%(asctime)s :: %(levelname)s :: %(message)s', 
