@@ -1,15 +1,12 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.17
-# Date:			May 2, 2015
+# Version: 		0.0.18
+# Date:			May 6, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Added logging - logs are now stored in the data directory.
-		Added a bunch of error handling.
-		Moved a bunch of code from the if __name__ == '__main__' statement
-		to the main() function which gets called from within the previous
-		if statement for easier management.
+		Changed the GUI back to Gtk because I found a solution to the
+		dialog bug and Gtk works better and looks better.
 """
 
 import smtplib, imaplib, mimetypes
@@ -24,15 +21,113 @@ from email.mime.image		import MIMEImage
 from email.mime.base		import MIMEBase
 from email.utils 			import COMMASPACE, formatdate
 
-# Tkinter GUI imports
-import tkinter
-from tkinter import filedialog
+from gi.repository			import Gtk
 
 # Custom Modules
 from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
 
 #-----------------------------------------------------------------------
 
+class FileChooser():
+	
+	def __init__(self):
+	
+		self.path = None
+		
+		w = Gtk.Window()
+		
+		dia = Gtk.FileChooserDialog("Please choose a file", w,
+			Gtk.FileChooserAction.OPEN,
+			(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+			Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+		
+		self.add_filters(dia)
+		
+		response = dia.run()
+		
+		if response == Gtk.ResponseType.OK:
+			#print("Open clicked")
+			#print("File selected: " + dia.get_filename())
+			self.path = dia.get_filename()
+		elif response == Gtk.ResponseType.CANCEL:
+			#print("Cancel clicked")
+			path = None
+			
+		dia.destroy()
+		
+	def add_filters(self, dia):
+		filter_any = Gtk.FileFilter()
+		filter_any.set_name("All files")
+		filter_any.add_pattern("*")
+		dia.add_filter(filter_any)
+		
+		filter_py = Gtk.FileFilter()
+		filter_py.set_name("Python files")
+		filter_py.add_pattern("*.py")
+		filter_py.add_pattern("*.pyc")
+		filter_py.add_pattern("*.pyo")
+		dia.add_filter(filter_py)
+		
+		filter_img = Gtk.FileFilter()
+		filter_img.set_name('Image files')
+		with open('data/imglist', 'r') as imgList:
+			for img in imgList:
+				img = img.strip('\n')
+				pattern = '*.' + img
+				filter_img.add_pattern(pattern)
+		dia.add_filter(filter_img)
+		
+		filter_docs = Gtk.FileFilter()
+		filter_docs.set_name("Document files")
+		with open('data/doclist', 'r') as docList:
+			for doc in docList:
+				doc = doc.strip('\n')
+				pattern = '*.' + doc
+				filter_docs.add_pattern(pattern)
+		dia.add_filter(filter_docs)
+		
+		filter_spread = Gtk.FileFilter()
+		filter_spread.set_name("Spreadsheet files")
+		with open('data/spreadlist', 'r') as spreadList:
+			for spread in spreadList:
+				spread = spread.strip('\n')
+				pattern = '*.' + spread
+				filter_spread.add_pattern(pattern)
+		dia.add_filter(filter_spread)
+		
+		filter_present = Gtk.FileFilter()
+		filter_present.set_name("Presentation files")
+		with open('data/presentlist', 'r') as presentList:
+			for present in presentList:
+				present = present.strip('\n')
+				pattern = '*.' + present
+				filter_present.add_pattern(pattern)
+		dia.add_filter(filter_present)		
+
+class YesNoDialog():
+	
+	def __init__(self):
+		
+		self.response = None
+		
+		w = Gtk.Window()
+		
+		ynAttachment = Gtk.MessageDialog(w, 0,
+			Gtk.MessageType.QUESTION,
+			(Gtk.STOCK_NO, Gtk.ResponseType.NO,
+			Gtk.STOCK_YES, Gtk.ResponseType.YES),
+			"Keyboard Mail")
+			
+		ynAttachment.format_secondary_text(
+			'Do you wish to add an attachment?')
+		
+		self.response = ynAttachment.run()
+		
+		ynAttachment.hide()
+		
+	def show(self):
+		ynAttachment.show()
+	
 def prompt(prompt):
 	return input(prompt).strip()
 
@@ -91,14 +186,14 @@ def content_setup(text, html):
 	
 def setup_attachment():
 	
-	root = tkinter.Tk()
-	root.withdraw()
+	dialogFile = FileChooser()
 	
-	path = filedialog.askopenfilename()
+	while Gtk.events_pending():
+		Gtk.main_iteration()
+		
+	path = dialogFile.path
 	
-	print (path)
-	
-	if path == '':		# No attachment chosen - acceptable result
+	if path == None:		# No attachment chosen - acceptable result
 		logging.info('No attachment selected!')
 		attached = False
 	else:				# Attachment chosen
@@ -156,10 +251,20 @@ def main():
 	
 	global attachment, server, msg
 	
+	attached = False
+	
 	msg = MIMEMultipart('mixed')	# Initialize overarching message as msg
 	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the email
 	
-	path, attached = setup_attachment()
+	dialogYN = YesNoDialog()
+	
+	if dialogYN.response == Gtk.ResponseType.YES:
+		path, attached = setup_attachment()
+	else:
+		pass
+	
+	while Gtk.events_pending():
+		Gtk.main_iteration()
 	
 	if attached:					# Attachment is there
 		partPLAINTEXT, partHTML, attachment = msg_setup(path)
@@ -216,7 +321,7 @@ if __name__ =='__main__':
 	
 	attached = False
 	
-	logPath = ('data/'+time.strftime("%d-%m-%Y")+'_'+time.strftime("%I-%M-%S %p")+'.log')
+	logPath = ('data/'+time.strftime("%m-%d-%Y")+'_'+time.strftime("%I-%M-%S %p")+'.log')
 	
 	logging.basicConfig(
 		format='%(asctime)s :: %(levelname)s :: %(message)s', 
