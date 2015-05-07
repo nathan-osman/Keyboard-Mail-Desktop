@@ -1,15 +1,15 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.18
-# Date:			May 6, 2015
+# Version: 		0.0.19
+# Date:			May 7, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Changed the GUI back to Gtk because I found a solution to the
-		dialog bug and Gtk works better and looks better.
+		Added multiple attachment support
+		Code needs some readability work/redundancy checking/optimization
 """
 
-import smtplib, imaplib, mimetypes
+import smtplib, mimetypes
 import sys, os, time
 import logging
 
@@ -123,10 +123,28 @@ class YesNoDialog():
 		
 		self.response = ynAttachment.run()
 		
-		ynAttachment.hide()
+		ynAttachment.destroy()
+
+class YesNoDialogAgain():
+	
+	def __init__(self):
 		
-	def show(self):
-		ynAttachment.show()
+		self.response = None
+		
+		w = Gtk.Window()
+		
+		ynaAttachment = Gtk.MessageDialog(w, 0,
+			Gtk.MessageType.QUESTION,
+			(Gtk.STOCK_NO, Gtk.ResponseType.NO,
+			Gtk.STOCK_YES, Gtk.ResponseType.YES),
+			"Keyboard Mail")
+			
+		ynaAttachment.format_secondary_text(
+			'Do you want to add another attachment?')
+		
+		self.response = ynaAttachment.run()
+		
+		ynaAttachment.destroy()
 	
 def prompt(prompt):
 	return input(prompt).strip()
@@ -199,12 +217,8 @@ def setup_attachment():
 	else:				# Attachment chosen
 		logging.info('Attachment ' + path + ' chosen.')
 		attached = True
-			
-	return path, attached
-	
-def msg_setup(path=''):
 
-	if path != '':		# Attachment given
+	if attached:		# Attachment given
 		
 		ctype, encoding = mimetypes.guess_type(path)
 		if ctype is None or encoding is not None:
@@ -225,7 +239,11 @@ def msg_setup(path=''):
 				attachment = MIMEBase(maintype, subtype)
 				attachment.set_payload(fp.read())
 		encoders.encode_base64(attachment)
-		attachment.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))				
+		attachment.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
+
+	return path, attachment, attached
+	
+def msg_setup():				
 		
 		text, html = get_message_data()		# Get the user's input for the content of the message
 		
@@ -233,18 +251,6 @@ def msg_setup(path=''):
 		
 		logging.info('Message content objects successfully created.')
 	
-		return partPLAINTEXT, partHTML, attachment
-		
-	else:				# No attachment provided
-		
-		logging.info('No attachment')
-		
-		text, html = get_message_data()		# Get the user's input for the content of the message
-		
-		partPLAINTEXT, partHTML = content_setup(text, html)	# Get the message parts (plaintext and HTML) for MIME
-		
-		logging.info('Message content objects successfully created.')
-		
 		return partPLAINTEXT, partHTML
 		
 def main():
@@ -258,18 +264,20 @@ def main():
 	
 	dialogYN = YesNoDialog()
 	
-	if dialogYN.response == Gtk.ResponseType.YES:
-		path, attached = setup_attachment()
-	else:
-		pass
-	
+	while dialogYN.response == Gtk.ResponseType.YES:
+		
+		if dialogYN.response == Gtk.ResponseType.YES:
+			path, attachment, attached = setup_attachment()
+			msg.attach(attachment)
+		else:
+			pass
+			
+		dialogYN = YesNoDialogAgain()
+			
 	while Gtk.events_pending():
 		Gtk.main_iteration()
 	
-	if attached:					# Attachment is there
-		partPLAINTEXT, partHTML, attachment = msg_setup(path)
-	else:							# No attachment
-		partPLAINTEXT, partHTML = msg_setup()
+	partPLAINTEXT, partHTML = msg_setup()
 	
 	content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
 	content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
@@ -277,9 +285,6 @@ def main():
 	logging.info('Message length ' +str(len(partPLAINTEXT)))
 	
 	msg.attach(content)			# Attach the content to the message
-	
-	if attached:				# Attachment is there
-		msg.attach(attachment)		# Attach the attachment to the message
 	
 	# Set up connection to server so we don't have repeat it each time
 	try:
