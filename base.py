@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.19
+# Version: 		0.0.19.1
 # Date:			May 7, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Added multiple attachment support
-		Code needs some readability work/redundancy checking/optimization
+		Re-named some functions to be more descriptive, moved some code
+		around to improve readability.
 """
 
 import smtplib, mimetypes
@@ -26,6 +26,7 @@ from gi.repository			import Gtk
 # Custom Modules
 from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
 
+# GUI Code
 #-----------------------------------------------------------------------
 
 class FileChooser():
@@ -119,7 +120,7 @@ class YesNoDialog():
 			"Keyboard Mail")
 			
 		ynAttachment.format_secondary_text(
-			'Do you wish to add an attachment?')
+			'Do you want to add an attachment?')
 		
 		self.response = ynAttachment.run()
 		
@@ -146,19 +147,15 @@ class YesNoDialogAgain():
 		
 		ynaAttachment.destroy()
 	
+# General Code
+#-----------------------------------------------------------------------
+
 def prompt(prompt):
 	return input(prompt).strip()
 
-def send(fromaddr, toaddr, msg):		# Sends the message, accepts the from address, to address and message as arguments
+#-----------------------------------------------------------------------
 
-	try:
-		server.send_message(msg, fromaddr, toaddr)	# Send the message.
-	except Exception as e:
-		logging.error('Message failed to send')
-		logging.error('Error:',e.args)
-		print(e.args)
-
-def get_message_data():
+def get_message_content():
 	
 	global recipients
 	
@@ -195,7 +192,7 @@ def get_message_data():
 	
 	return text, html
 
-def content_setup(text, html):
+def body_format(text, html):
 	
 	partPLAINTEXT	= MIMEText(text, 'plain')	# Create MIMEText object for the plaintext version of the body
 	partHTML		= MIMEText(html, 'html')	# Create MIMEText object for the HTML version of the body
@@ -245,14 +242,44 @@ def setup_attachment():
 	
 def msg_setup():				
 		
-		text, html = get_message_data()		# Get the user's input for the content of the message
+		text, html = get_message_content()		# Get the user's input for the content of the message
 		
-		partPLAINTEXT, partHTML = content_setup(text, html)	# Get the message parts (plaintext and HTML) for MIME
+		partPLAINTEXT, partHTML = body_format(text, html)	# Get the message parts (plaintext and HTML) for MIME
 		
 		logging.info('Message content objects successfully created.')
 	
 		return partPLAINTEXT, partHTML
 		
+def setup_server():
+	
+	# Set up connection to server so we don't have repeat it each time
+	try:
+		server = smtplib.SMTP('smtp.gmail.com:587')	# Connect to smtp.gmail.com, port 587
+		
+		logging.info('Connected to Gmail SMTP server successfully')
+		
+		server.set_debuglevel(1)					# Set the debug level so we get verbose feedback from the server
+		server.ehlo()								# Say EHLO to the server
+		server.starttls()							# Attempt to start TLS
+		server.login(credsUSER, credsPASS)			# Log in to the site with the provided username & password (stored in credentials.py)
+		
+		logging.info('User logged in successfully')
+		
+	except Exception as e:
+		logging.error('Error during SMTP')
+		logging.error('Error:',e.args)
+		print(e.args)
+		quit()
+
+def send(fromaddr, toaddr, msg):		# Sends the message, accepts the from address, to address and message as arguments
+
+	try:
+		server.send_message(msg, fromaddr, toaddr)	# Send the message.
+	except Exception as e:
+		logging.error('Message failed to send')
+		logging.error('Error:',e.args)
+		print(e.args)
+
 def main():
 	
 	global attachment, server, msg
@@ -286,24 +313,7 @@ def main():
 	
 	msg.attach(content)			# Attach the content to the message
 	
-	# Set up connection to server so we don't have repeat it each time
-	try:
-		server = smtplib.SMTP('smtp.gmail.com:587')	# Connect to smtp.gmail.com, port 587
-		
-		logging.info('Connected to Gmail SMTP server successfully')
-		
-		server.set_debuglevel(1)					# Set the debug level so we get verbose feedback from the server
-		server.ehlo()								# Say EHLO to the server
-		server.starttls()							# Attempt to start TLS
-		server.login(credsUSER, credsPASS)			# Log in to the site with the provided username & password (stored in credentials.py)
-		
-		logging.info('User logged in successfully')
-		
-	except Exception as e:
-		logging.error('Error during SMTP')
-		logging.error('Error:',e.args)
-		print(e.args)
-		quit()
+	setup_server()
 	
 	fromaddr = msg['From']		# From in its own string, required as an arg for send()
 	
