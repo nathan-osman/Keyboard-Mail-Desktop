@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.19.1
-# Date:			May 7, 2015
+# Version: 		0.0.20
+# Date:			May 8, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Re-named some functions to be more descriptive, moved some code
-		around to improve readability.
+		Added basic GUI text editing capabilities
 """
 
 import smtplib, mimetypes
@@ -21,7 +20,9 @@ from email.mime.image		import MIMEImage
 from email.mime.base		import MIMEBase
 from email.utils 			import COMMASPACE, formatdate
 
-from gi.repository			import Gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
 
 # Custom Modules
 from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
@@ -147,6 +148,70 @@ class YesNoDialogAgain():
 		
 		ynaAttachment.destroy()
 	
+class Handler():
+	
+	def __init__(self):
+		self.state = 0
+	
+	def onDeleteWindow(self, *args):
+		Gtk.main_quit(*args)
+	
+	def sendButtonPressed(self, button):
+		print ('Test')
+	
+	def bold(self, button):
+		if button.get_active():	# Button is "down"/enabled
+			print ("BOLD HYPE!")
+		else:					# Button is "up"/disabled
+			print ("BOOOORING")
+			
+	def italic(self, button):
+		if button.get_active():
+			print ("Italic!")
+		else:
+			print ("No moar")
+	
+	def underline(self, button):
+		if button.get_active():
+			print ("Underline!")
+		else:
+			print ("NOPE!")
+	
+	def alignToggled(self, radiobutton, name):
+		if radiobutton.get_active():
+			print (name)
+			print ('On')
+		else:
+			print (name)
+			print ('Off')
+	
+	def undo(self, button):
+		print ('Undo')
+	
+	def redo(self, button):
+		print ('Redo')
+	
+	def addAttach(self, button):
+		setup_attachment()
+	
+	def showAttach(self, button):
+		w.show_all()
+	
+	def keyHandler(self, widget, event):
+		print (Gdk.keyval_name(event.keyval))
+		if Gdk.ModifierType.CONTROL_MASK & event.state:
+			if Gdk.keyval_name(event.keyval) == 'q':	# Quit the program
+				Gtk.main_quit()
+			if Gdk.keyval_name(event.keyval) == 'Down':	# Attachment panel
+				if self.state == 0:
+					buttonAttach.show()
+					labelAttachment.hide()
+					self.state = 1
+				else:
+					buttonAttach.hide()
+					labelAttachment.show()
+					self.state = 0
+					
 # General Code
 #-----------------------------------------------------------------------
 
@@ -282,27 +347,28 @@ def send(fromaddr, toaddr, msg):		# Sends the message, accepts the from address,
 
 def main():
 	
-	global attachment, server, msg
+	global attachment, server, msg, buttonAttach, buttonSend, labelAttachment
 	
 	attached = False
 	
 	msg = MIMEMultipart('mixed')	# Initialize overarching message as msg
-	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the email
+	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the emai
 	
-	dialogYN = YesNoDialog()
+	builder = Gtk.Builder()
+	builder.add_from_file('data/editor.glade')
+	builder.connect_signals(Handler())
 	
-	while dialogYN.response == Gtk.ResponseType.YES:
-		
-		if dialogYN.response == Gtk.ResponseType.YES:
-			path, attachment, attached = setup_attachment()
-			msg.attach(attachment)
-		else:
-			pass
-			
-		dialogYN = YesNoDialogAgain()
-			
-	while Gtk.events_pending():
-		Gtk.main_iteration()
+	buttonAttach = builder.get_object('buttonAttach')
+	buttonSend = builder.get_object('buttonSend')
+	labelAttachment = builder.get_object('labelAttachmentBar')
+	
+	w = builder.get_object('window1')
+	w.show_all()
+	
+	buttonAttach.hide()
+	buttonSend.hide()
+	
+	Gtk.main()
 	
 	partPLAINTEXT, partHTML = msg_setup()
 	
