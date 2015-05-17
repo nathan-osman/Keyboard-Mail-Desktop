@@ -182,7 +182,7 @@ class Handler():
 		setup_attachment()
 	
 	def keyHandler(self, widget, event):
-		global html
+		global html, text
 		print (Gdk.keyval_name(event.keyval))
 		if Gdk.ModifierType.CONTROL_MASK & event.state:
 			if Gdk.keyval_name(event.keyval) == 'q':	# Quit the program
@@ -202,7 +202,8 @@ class Handler():
 			changeMsgFormat('pc')
 
 		if Gdk.keyval_name(event.keyval) == 'BackSpace' and textBody.is_focus():	# User hit backspace
-			html = html[-1:]
+			html = html[:-1]
+			text = text[:-1]
 #-----------------------------------------------------------------------
 # General Code
 #-----------------------------------------------------------------------
@@ -444,6 +445,8 @@ def main():
 	buttonAttach.hide()
 	
 	Gtk.main()
+
+	print (html)
 	
 	partPLAINTEXT, partHTML = msg_setup()
 	
