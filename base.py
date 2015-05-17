@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.20
+# Version: 		0.0.20.1
 # Date:			May 8, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
-		Added basic GUI text editing capabilities
+		Adding basic GUI text editing capabilities
+		Sub release of 0.20 is getting the GUI in basic working order.
 """
 
 import smtplib, mimetypes
@@ -22,7 +23,7 @@ from email.utils 			import COMMASPACE, formatdate
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Pango
 
 # Custom Modules
 from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
@@ -36,8 +37,6 @@ class FileChooser():
 	
 		self.path = None
 		
-		w = Gtk.Window()
-		
 		dia = Gtk.FileChooserDialog("Please choose a file", w,
 			Gtk.FileChooserAction.OPEN,
 			(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -48,11 +47,8 @@ class FileChooser():
 		response = dia.run()
 		
 		if response == Gtk.ResponseType.OK:
-			#print("Open clicked")
-			#print("File selected: " + dia.get_filename())
 			self.path = dia.get_filename()
 		elif response == Gtk.ResponseType.CANCEL:
-			#print("Cancel clicked")
 			path = None
 			
 		dia.destroy()
@@ -106,103 +102,93 @@ class FileChooser():
 				filter_present.add_pattern(pattern)
 		dia.add_filter(filter_present)		
 
-class YesNoDialog():
-	
-	def __init__(self):
-		
-		self.response = None
-		
-		w = Gtk.Window()
-		
-		ynAttachment = Gtk.MessageDialog(w, 0,
-			Gtk.MessageType.QUESTION,
-			(Gtk.STOCK_NO, Gtk.ResponseType.NO,
-			Gtk.STOCK_YES, Gtk.ResponseType.YES),
-			"Keyboard Mail")
-			
-		ynAttachment.format_secondary_text(
-			'Do you want to add an attachment?')
-		
-		self.response = ynAttachment.run()
-		
-		ynAttachment.destroy()
-
-class YesNoDialogAgain():
-	
-	def __init__(self):
-		
-		self.response = None
-		
-		w = Gtk.Window()
-		
-		ynaAttachment = Gtk.MessageDialog(w, 0,
-			Gtk.MessageType.QUESTION,
-			(Gtk.STOCK_NO, Gtk.ResponseType.NO,
-			Gtk.STOCK_YES, Gtk.ResponseType.YES),
-			"Keyboard Mail")
-			
-		ynaAttachment.format_secondary_text(
-			'Do you want to add another attachment?')
-		
-		self.response = ynaAttachment.run()
-		
-		ynaAttachment.destroy()
-	
 class Handler():
 	
 	def __init__(self):
+		global html
 		self.state = 0
 	
 	def onDeleteWindow(self, *args):
 		Gtk.main_quit(*args)
 	
-	def sendButtonPressed(self, button):
-		print ('Test')
-	
+	def onSendClicked(self, button):
+		to = entryTo.get_text()
+		cc = entryCC.get_text()
+		bcc = entryBCC.get_text()
+		subject = entrySubject.get_text()
+		content = textBodyBuffer.get_text()
+
+		setup_server()
+		
 	def bold(self, button):
+		global html, tags_on
+		print (button)
 		if button.get_active():	# Button is "down"/enabled
-			print ("BOLD HYPE!")
+			tags_on.append('bold')
+			changeMsgFormat('bo')
 		else:					# Button is "up"/disabled
-			print ("BOOOORING")
+			del tags_on[tags_on.index('bold')]
+			changeMsgFormat('bc')
 			
 	def italic(self, button):
-		if button.get_active():
-			print ("Italic!")
-		else:
-			print ("No moar")
+		global html
+		print (button)
+		if button.get_active():	# Button is "down"/enabled
+			tags_on.append('italic')
+			changeMsgFormat('io')
+		else:					# Button is "up"/disabled
+			del tags_on[tags_on.index('italic')]
+			changeMsgFormat('ic')
 	
 	def underline(self, button):
-		if button.get_active():
-			print ("Underline!")
-		else:
-			print ("NOPE!")
+		global html
+		if button.get_active():	# Button is "down"/enabled
+			tags_on.append('underline')
+			changeMsgFormat('uo')
+		else:					# Button is "up"/disabled
+			del tags_on[tags_on.index('underline')]
+			changeMsgFormat('uc')
 	
-	def alignToggled(self, radiobutton, name):
+	def alignToggled(self, radiobutton):
 		if radiobutton.get_active():
-			print (name)
-			print ('On')
+			if radiobutton.get_name() == 'alignLeft':
+				print ('Left')
+			elif radiobutton.get_name() == 'alignCenter':
+				print ('Center')
+			elif radiobutton.get_name() == 'alignRight':
+				print ('Right')
+			elif radiobutton.get_name() == 'alignFill':
+				print ('FillOff')
 		else:
-			print (name)
-			print ('Off')
+			if radiobutton.get_name() == 'alignLeft':
+				print ('LeftOff')
+			elif radiobutton.get_name() == 'alignCenter':
+				print ('CenterOff')
+			elif radiobutton.get_name() == 'alignRight':
+				print ('RightOff')
+			elif radiobutton.get_name() == 'alignFill':
+				print ('FillOff')
 	
 	def undo(self, button):
 		print ('Undo')
+		pass
 	
 	def redo(self, button):
 		print ('Redo')
+		pass
 	
 	def addAttach(self, button):
+		global attachment
 		setup_attachment()
 	
-	def showAttach(self, button):
-		w.show_all()
-	
 	def keyHandler(self, widget, event):
+		global html
 		print (Gdk.keyval_name(event.keyval))
 		if Gdk.ModifierType.CONTROL_MASK & event.state:
 			if Gdk.keyval_name(event.keyval) == 'q':	# Quit the program
+				w.destroy()
 				Gtk.main_quit()
-			if Gdk.keyval_name(event.keyval) == 'Down':	# Attachment panel
+			elif Gdk.keyval_name(event.keyval) == 'Down':	# Attachment panel
 				if self.state == 0:
 					buttonAttach.show()
 					labelAttachment.hide()
@@ -211,7 +197,13 @@ class Handler():
 					buttonAttach.hide()
 					labelAttachment.show()
 					self.state = 0
-					
+
+		if Gdk.keyval_name(event.keyval) == 'Return' and textBody.is_focus():		# User hit enter
+			changeMsgFormat('pc')
+
+		if Gdk.keyval_name(event.keyval) == 'BackSpace' and textBody.is_focus():	# User hit backspace
+			html = html[-1:]
+#-----------------------------------------------------------------------
 # General Code
 #-----------------------------------------------------------------------
 
@@ -219,14 +211,68 @@ def prompt(prompt):
 	return input(prompt).strip()
 
 #-----------------------------------------------------------------------
+# Message Rich Text Formatting Code
+#-----------------------------------------------------------------------
+
+def changeMsgFormat(tag):
+
+	global html
+
+	if tag[1] == 'c':
+		if tag[0] == 'b':
+			html += '</b>'
+		if tag[0] == 'i':
+			html += '</em>'
+		if tag[0] == 'u':
+			html += '</u>'
+		if tag[0] == 'p':
+			html += '</p><p>'
+	else:
+		if tag[0] == 'b':
+			html += '<b>'
+		if tag[0] == 'i':
+			html += '<em>'
+		if tag[0] == 'u':
+			html += '<u>'
+		if tag[0] == 'p':
+			html += '<p>'
+
+def get_iter_position(buffer):
+	return buffer.get_iter_at_mark(buffer.get_insert())
+
+def text_inserted(buffer, iter, char, length):
+
+	global html, text
+
+	text += char
+	html += char
+
+	if tags_on:
+		iter.backward_chars(length)
+		print (tags_on)
+		for tag in tags_on:
+			if tag == 'bold':
+				buffer.apply_tag(tag_bold, get_iter_position(buffer), iter)
+			if tag == 'italic':
+				buffer.apply_tag(tag_italic, get_iter_position(buffer), iter)
+			if tag == 'underline':
+				buffer.apply_tag(tag_underline, get_iter_position(buffer), iter)
+				w.queue_draw()
+
+#-----------------------------------------------------------------------
 
 def get_message_content():
 	
 	global recipients
 	
-	msg['Subject']	= input('Subject: ')	# Subject	
+	to = entryTo.get_text()
+	cc = entryCC.get_text()
+	bcc = entryBCC.get_text()
+	subject = entrySubject.get_text()
+
+	msg['Subject'] 	= subject				# Subject
 	msg['From']		= credsUSER				# From - set by the credential.py file
-	recipients		= input('To: ').split()	# All of the recipients in list form
+	recipients		= to.split()			# All of the recipients in list form
 	
 	if recipients == '':					# Make sure that there is at least one recipient (need email confirmation)
 		logging.info('No recipients given')
@@ -267,9 +313,6 @@ def body_format(text, html):
 def setup_attachment():
 	
 	dialogFile = FileChooser()
-	
-	while Gtk.events_pending():
-		Gtk.main_iteration()
 		
 	path = dialogFile.path
 	
@@ -346,27 +389,59 @@ def send(fromaddr, toaddr, msg):		# Sends the message, accepts the from address,
 		print(e.args)
 
 def main():
-	
-	global attachment, server, msg, buttonAttach, buttonSend, labelAttachment
-	
+
+	# Global variables for the email
+	global attachment, server, msg, text, html
+	# GUI Global Variables - Buttons
+	global buttonAttach, buttonSend, w
+	# GUI Global Variables - Labels
+	global labelAttachment
+	# GUI Global Variables - Entries
+	global entryTo, entryCC, entryBCC, entrySubject
+	# GUI Global Objects - TextViews/TextBuffers
+	global textBody, textBodyBuffer
+	# Gtk tag globals
+	global tag_bold, tag_italic, tag_underline, tags_on
+
+	# Variable setup
+	text = ''
+	html = '<html><body><p>'
 	attached = False
-	
-	msg = MIMEMultipart('mixed')	# Initialize overarching message as msg
+	tags_on = []
+
+	msg = MIMEMultipart('mixed')			# Initialize overarching message as msg
 	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the emai
 	
 	builder = Gtk.Builder()
 	builder.add_from_file('data/editor.glade')
 	builder.connect_signals(Handler())
-	
+
 	buttonAttach = builder.get_object('buttonAttach')
 	buttonSend = builder.get_object('buttonSend')
+	
+	entryTo = builder.get_object('entryTo')
+	entryCC = builder.get_object('entryCC')
+	entryBCC = builder.get_object('entryBCC')
+	entrySubject = builder.get_object('entrySubject')
+
+	textBody = builder.get_object('textviewBody')
+	textBodyBuffer = textBody.get_buffer()
+	
+	textBodyBuffer.connect_after('insert-text', text_inserted)
+	tag_bold = textBodyBuffer.create_tag("bold", weight=Pango.Weight.BOLD)
+	tag_italic = textBodyBuffer.create_tag("italic", style=Pango.Style.ITALIC)
+	tag_underline = textBodyBuffer.create_tag("underline", underline=Pango.Underline.SINGLE)
+	
 	labelAttachment = builder.get_object('labelAttachmentBar')
+	labelCC = builder.get_object('labelCC')
+	labelFromVar = builder.get_object('labelFromVar')
+
+	labelFromVar.set_text(credsUSER)
 	
 	w = builder.get_object('window1')
 	w.show_all()
 	
 	buttonAttach.hide()
-	buttonSend.hide()
 	
 	Gtk.main()
 	
@@ -402,7 +477,7 @@ if __name__ =='__main__':
 	
 	attached = False
 	
-	logPath = ('data/'+time.strftime("%m-%d-%Y")+'_'+time.strftime("%I-%M-%S %p")+'.log')
+	logPath = ('data/logs/'+time.strftime("%m-%d-%Y")+'_'+time.strftime("%I-%M-%S %p")+'.log')
 	
 	logging.basicConfig(
 		format='%(asctime)s :: %(levelname)s :: %(message)s', 
