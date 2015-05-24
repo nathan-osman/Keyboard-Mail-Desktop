@@ -8,6 +8,8 @@ The setup process is fairly simple if you're on Ubuntu. You may need to change t
 All that is required is
 
 * Python 3 (3.4 is what I'm developing on, but any 3.x version should (*in theory*) work.
+* BeautifulSoup 4 for Python 3.x (BS4 is the Python module)
+* Gtk 3 for Python 3.x
 
 Once you've got Python 3.x installed, simply edit the credentials.py.template file to match your personal email credentials and then rename the file to credentials.py.
 
