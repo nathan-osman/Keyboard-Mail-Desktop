@@ -1,12 +1,15 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.20.1
-# Date:			May 8, 2015
+# Version: 		0.0.20.3
+# Date:			May 17, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
 		Adding basic GUI text editing capabilities
-		Sub release of 0.20 is getting the GUI in basic working order.
+		Sub release of 0.20 (.3) is for working on getting rich text formatting in place
+		Converting visual rich text to HTML still isn't working, but you can type in rich text now
+		Updated onSendClicked, bold, italic, underline, and keyHandler handlers
+
 """
 
 import smtplib, mimetypes
@@ -24,6 +27,8 @@ from email.utils 			import COMMASPACE, formatdate
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
+
+from bs4 import BeautifulSoup
 
 # Custom Modules
 from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
@@ -112,42 +117,73 @@ class Handler():
 		Gtk.main_quit(*args)
 	
 	def onSendClicked(self, button):
-		to = entryTo.get_text()
-		cc = entryCC.get_text()
-		bcc = entryBCC.get_text()
-		subject = entrySubject.get_text()
-		content = textBodyBuffer.get_text()
+		self.to = entryTo.get_text()
+		self.cc = entryCC.get_text()
+		self.bcc = entryBCC.get_text()
+		self.subject = entrySubject.get_text()
+		start, end = textBodyBuffer.get_bounds()
+		self.content = textBodyBuffer.get_text(start, end, True)
+
+		# Below is the serialization code for exporting with format tags
+		format = textBodyBuffer.register_serialize_tagset()	
+		exported = textBodyBuffer.serialize(textBodyBuffer, format, start, end)
+		
+		exported = exported.decode("latin-1")
+
+		exported = exported.split('<text_view_markup>', 1)
+		del exported[0]
+		exported[0] = '<text_view_markup>' + str(exported[0])
+
+		exported = exported[0].split('</tags>', 1)
+		del exported[0]
+
+		exported = exported[0].split('</text_view_markup>', 1)
+		exported = str(exported[0]).replace('\n', ' ')
+
+		soup = BeautifulSoup(exported)
+
+		soupTags = soup.find_all('apply_tag')
+
+		for tag in soupTags:
+
+			if tag['name'] == 'bold':
+				tag.name = 'b'
+				del tag['name']
+			elif tag['name'] == 'italic':
+				tag.name = 'em'
+				del tag['name']
+			elif tag['name'] == 'underline':
+				tag.name = 'u'
+				del tag['name']
+
+		print (soup)
 
 		setup_server()
 		
 	def bold(self, button):
-		global html, tags_on
-		print (button)
-		if button.get_active():	# Button is "down"/enabled
+		global tags_on
+		name = button.get_name()
+		if button.get_active():				# Button is "down"/enabled
 			tags_on.append('bold')
-			changeMsgFormat('bo')
-		else:					# Button is "up"/disabled
+		elif button.get_active() != True:	# Button is "up"/disabled
 			del tags_on[tags_on.index('bold')]
-			changeMsgFormat('bc')
 			
 	def italic(self, button):
-		global html
-		print (button)
-		if button.get_active():	# Button is "down"/enabled
+		global tags_on
+		name = button.get_name()
+		if button.get_active():				# Button is "down"/enabled
 			tags_on.append('italic')
-			changeMsgFormat('io')
-		else:					# Button is "up"/disabled
+		elif button.get_active() != True:	# Button is "up"/disabled
+			print (button.get_name())
 			del tags_on[tags_on.index('italic')]
-			changeMsgFormat('ic')
 	
 	def underline(self, button):
-		global html
-		if button.get_active():	# Button is "down"/enabled
+		global tags_on
+		name = button.get_name()
+		if button.get_active():				# Button is "down"/enabled
 			tags_on.append('underline')
-			changeMsgFormat('uo')
-		else:					# Button is "up"/disabled
+		elif button.get_active() != True:	# Button is "up"/disabled
 			del tags_on[tags_on.index('underline')]
-			changeMsgFormat('uc')
 	
 	def alignToggled(self, radiobutton):
 		if radiobutton.get_active():
@@ -416,7 +452,7 @@ def main():
 	builder = Gtk.Builder()
 	builder.add_from_file('data/editor.glade')
 	builder.connect_signals(Handler())
-
+	
 	buttonAttach = builder.get_object('buttonAttach')
 	buttonSend = builder.get_object('buttonSend')
 	
@@ -432,7 +468,7 @@ def main():
 	tag_bold = textBodyBuffer.create_tag("bold", weight=Pango.Weight.BOLD)
 	tag_italic = textBodyBuffer.create_tag("italic", style=Pango.Style.ITALIC)
 	tag_underline = textBodyBuffer.create_tag("underline", underline=Pango.Underline.SINGLE)
-	
+
 	labelAttachment = builder.get_object('labelAttachmentBar')
 	labelCC = builder.get_object('labelCC')
 	labelFromVar = builder.get_object('labelFromVar')
