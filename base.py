@@ -1,15 +1,14 @@
 #!/usr/bin/python3
 
 # Keyboard Mail Daemon
-# Version: 		0.0.20.3
-# Date:			May 17, 2015
+# Version: 		0.0.20.4
+# Date:			May 24, 2015
 # Contributors:	RPiAwesomeness
 """Changelog:
 		Adding basic GUI text editing capabilities
-		Sub release of 0.20 (.3) is for working on getting rich text formatting in place
-		Converting visual rich text to HTML still isn't working, but you can type in rich text now
-		Updated onSendClicked, bold, italic, underline, and keyHandler handlers
-
+		Sub release of 0.20 (.4) - Still working on getting the rich text formatting to work correctly
+		GUI now works in a basic form, messages can be sent (and multiple recipients is working)
+		Attachments work, but only if you have only one. Multiple attachments will be coming in the future
 """
 
 import smtplib, mimetypes
@@ -31,7 +30,7 @@ from gi.repository import Gtk, Gdk, Pango
 from bs4 import BeautifulSoup
 
 # Custom Modules
-from credentials 			import USERNAME as credsUSER, PASSWORD as credsPASS
+from CREDENTIALS 			import USERNAME as credsUSER, PASSWORD as credsPASS
 
 # GUI Code
 #-----------------------------------------------------------------------
@@ -117,12 +116,18 @@ class Handler():
 		Gtk.main_quit(*args)
 	
 	def onSendClicked(self, button):
-		self.to = entryTo.get_text()
-		self.cc = entryCC.get_text()
-		self.bcc = entryBCC.get_text()
-		self.subject = entrySubject.get_text()
+		
+		# Variables for text
+		global to, cc, bcc, subject, partPLAINTEXT, partHTML
+		# Variables for objects
+		global content, msg, server, attachment, attached
+
+		to = entryTo.get_text()
+		cc = entryCC.get_text()
+		bcc = entryBCC.get_text()
+		subject = entrySubject.get_text()
 		start, end = textBodyBuffer.get_bounds()
-		self.content = textBodyBuffer.get_text(start, end, True)
+		partPLAINTEXT = textBodyBuffer.get_text(start, end, True)
 
 		# Below is the serialization code for exporting with format tags
 		format = textBodyBuffer.register_serialize_tagset()	
@@ -142,10 +147,14 @@ class Handler():
 
 		soup = BeautifulSoup(exported)
 
+		soupRoot = soup.find_all('text')
+
+		for tag in soupRoot:
+			tag.name = 'p'
+
 		soupTags = soup.find_all('apply_tag')
 
 		for tag in soupTags:
-
 			if tag['name'] == 'bold':
 				tag.name = 'b'
 				del tag['name']
@@ -155,11 +164,42 @@ class Handler():
 			elif tag['name'] == 'underline':
 				tag.name = 'u'
 				del tag['name']
+			elif tag.name == 'text':
+				del tag
 
-		print (soup)
+		partHTML = str(soup.contents[0])
 
 		setup_server()
+
+		partPLAINTEXT, partHTML = msg_setup(partHTML)
+	
+		content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
+		content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
 		
+		logging.info('Message length ' +str(len(partPLAINTEXT)))
+		
+		msg.attach(content)			# Attach the content to the message
+
+		if attached:				# Attachment is there
+			msg.attach(attachment)
+
+		fromaddr = msg['From']		# From in its own string, required as an arg for send()
+		
+		# Need to find a way to set the msg['To'] field to have multiple recipients because it will be faster
+		# Currently, each message is sent individually to each recipient
+		for recip in recipients:		# Iterate through all of the recipients and ...
+			send(fromaddr, recip, msg)	# Call the send function individually for each
+		
+		print ('Message sent successfully')
+		logging.info('Message sent successfully')
+		
+		server.quit()						# Done, disconnect from the server
+		
+		print ('Server disconnected')
+		logging.info('Server disconnected')
+
+		quit()
+			
 	def bold(self, button):
 		global tags_on
 		name = button.get_name()
@@ -214,8 +254,8 @@ class Handler():
 		pass
 	
 	def addAttach(self, button):
-		global attachment
-		setup_attachment()
+		global path, attachment, attached
+		path, attachment, attached = setup_attachment()
 	
 	def keyHandler(self, widget, event):
 		global html, text
@@ -240,6 +280,7 @@ class Handler():
 		if Gdk.keyval_name(event.keyval) == 'BackSpace' and textBody.is_focus():	# User hit backspace
 			html = html[:-1]
 			text = text[:-1]
+
 #-----------------------------------------------------------------------
 # General Code
 #-----------------------------------------------------------------------
@@ -250,29 +291,6 @@ def prompt(prompt):
 #-----------------------------------------------------------------------
 # Message Rich Text Formatting Code
 #-----------------------------------------------------------------------
-
-def changeMsgFormat(tag):
-
-	global html
-
-	if tag[1] == 'c':
-		if tag[0] == 'b':
-			html += '</b>'
-		if tag[0] == 'i':
-			html += '</em>'
-		if tag[0] == 'u':
-			html += '</u>'
-		if tag[0] == 'p':
-			html += '</p><p>'
-	else:
-		if tag[0] == 'b':
-			html += '<b>'
-		if tag[0] == 'i':
-			html += '<em>'
-		if tag[0] == 'u':
-			html += '<u>'
-		if tag[0] == 'p':
-			html += '<p>'
 
 def get_iter_position(buffer):
 	return buffer.get_iter_at_mark(buffer.get_insert())
@@ -305,7 +323,7 @@ def get_message_content():
 	to = entryTo.get_text()
 	cc = entryCC.get_text()
 	bcc = entryBCC.get_text()
-	subject = entrySubject.get_text()
+	text = entrySubject.get_text()
 
 	msg['Subject'] 	= subject				# Subject
 	msg['From']		= credsUSER				# From - set by the credential.py file
@@ -322,23 +340,7 @@ def get_message_content():
 	msg['To'] 		= COMMASPACE.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
 	msg['Date']		= str(formatdate(localtime=True))
 	
-	# Enter your email
-	print ('Enter message, end with ^D (Unix/Linux) or ^Z (Windows):')
-	
-	text = ''							# Plain Text storage variable
-	html = '<html><head></head><body>'	# Initialize html variable with initial, default HTML tags
-			
-	while True:							# Loops, allowing you to input your message
-		try:
-			line = input()
-		except EOFError:				# Use error catching to do the dirty work of detecting the end of message
-			break						# Get out of the infinite loop
-		text = text + '\n' + line	# Basic text of email
-		html += '<p>'+line+'</p>'	# HTML version with <p> tags added around line
-	
-	html += '</body></html>'	# Once loop is complete, close all the tags
-	
-	return text, html
+	return text
 
 def body_format(text, html):
 	
@@ -355,13 +357,14 @@ def setup_attachment():
 	
 	if path == None:		# No attachment chosen - acceptable result
 		logging.info('No attachment selected!')
+		print ('No attachment selected!')
 		attached = False
 	else:				# Attachment chosen
 		logging.info('Attachment ' + path + ' chosen.')
+		print ('Attachment ' + path + ' chosen.')
 		attached = True
 
-	if attached:		# Attachment given
-		
+	if attached:		# Attachment given		
 		ctype, encoding = mimetypes.guess_type(path)
 		if ctype is None or encoding is not None:
 			ctype = 'application/octet-stream'
@@ -385,18 +388,21 @@ def setup_attachment():
 
 	return path, attachment, attached
 	
-def msg_setup():				
+def msg_setup(partHTML):				
 		
-		text, html = get_message_content()		# Get the user's input for the content of the message
+		text = get_message_content()		# Get the user's input for the content of the message
 		
-		partPLAINTEXT, partHTML = body_format(text, html)	# Get the message parts (plaintext and HTML) for MIME
+		partPLAINTEXT, partHTML = body_format(text, partHTML)	# Get the message parts (plaintext and HTML) for MIME
 		
 		logging.info('Message content objects successfully created.')
+		print ('Message content objects successfully created.')
 	
 		return partPLAINTEXT, partHTML
 		
 def setup_server():
 	
+	global server
+
 	# Set up connection to server so we don't have repeat it each time
 	try:
 		server = smtplib.SMTP('smtp.gmail.com:587')	# Connect to smtp.gmail.com, port 587
@@ -428,11 +434,11 @@ def send(fromaddr, toaddr, msg):		# Sends the message, accepts the from address,
 def main():
 
 	# Global variables for the email
-	global attachment, server, msg, text, html
+	global attachment, server, msg, text, html, content
 	# GUI Global Variables - Buttons
 	global buttonAttach, buttonSend, w
 	# GUI Global Variables - Labels
-	global labelAttachment
+	global labelAttachment, labelFromVar
 	# GUI Global Variables - Entries
 	global entryTo, entryCC, entryBCC, entrySubject
 	# GUI Global Objects - TextViews/TextBuffers
@@ -482,32 +488,6 @@ def main():
 	
 	Gtk.main()
 
-	print (html)
-	
-	partPLAINTEXT, partHTML = msg_setup()
-	
-	content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
-	content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
-	
-	logging.info('Message length ' +str(len(partPLAINTEXT)))
-	
-	msg.attach(content)			# Attach the content to the message
-	
-	setup_server()
-	
-	fromaddr = msg['From']		# From in its own string, required as an arg for send()
-	
-	# Need to find a way to set the msg['To'] field to have multiple recipients because it will be faster
-	# Currently, each message is sent individually to each recipient
-	for recip in recipients:		# Iterate through all of the recipients and ...
-		send(fromaddr, recip, msg)	# Call the send function individually for each
-	
-	logging.info('Message sent successfully.')
-	
-	server.quit()						# Done, disconnect from the server
-	
-	logging.info('Server disconnected')
-	
 	quit()
 
 if __name__ =='__main__':

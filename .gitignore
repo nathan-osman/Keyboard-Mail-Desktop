@@ -1,4 +1,4 @@
-/credentials.py
+/CREDENTIALS.py
 *.py[co]
 data/logs/*.log
 data/logs/*.*~
