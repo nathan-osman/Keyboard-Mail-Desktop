@@ -1,14 +1,18 @@
 #!/usr/bin/python3
 
-# Keyboard Mail Daemon
-# Version: 		0.0.20.4
-# Date:			May 24, 2015
+# Keyboard Mail
+# Version: 		0.0.21.0
+# Date:			June 7, 2015
 # Contributors:	RPiAwesomeness
+
 """Changelog:
-		Adding basic GUI text editing capabilities
-		Sub release of 0.20 (.4) - Still working on getting the rich text formatting to work correctly
-		GUI now works in a basic form, messages can be sent (and multiple recipients is working)
-		Attachments work, but only if you have only one. Multiple attachments will be coming in the future
+		Working on getting the display of multiple attachments beyond a certain number to work properly.
+		Currently they are not working in the slightest, and the approach I was coming at it from is 
+			flawed. This version will not display multiple attachments correctly.
+		Main change in this version is the inclusion of Gtk+ CSS theming via the gtk.css file in the data directory
+		UI still does not look as I would like it though.
+
+		This is just a generally crappy version/push :P
 """
 
 import smtplib, mimetypes
@@ -109,7 +113,6 @@ class FileChooser():
 class Handler():
 	
 	def __init__(self):
-		global html
 		self.state = 0
 	
 	def onDeleteWindow(self, *args):
@@ -120,7 +123,7 @@ class Handler():
 		# Variables for text
 		global to, cc, bcc, subject, partPLAINTEXT, partHTML
 		# Variables for objects
-		global content, msg, server, attachment, attached
+		global content, msg, server, attached
 
 		to = entryTo.get_text()
 		cc = entryCC.get_text()
@@ -171,17 +174,18 @@ class Handler():
 
 		setup_server()
 
-		partPLAINTEXT, partHTML = msg_setup(partHTML)
+		partPLAINTEXT, partHTML = body_setup(partHTML)
 	
 		content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
 		content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
 		
 		logging.info('Message length ' +str(len(partPLAINTEXT)))
+		print (('Message length ' +str(len(partPLAINTEXT))))
 		
 		msg.attach(content)			# Attach the content to the message
 
-		if attached:				# Attachment is there
-			msg.attach(attachment)
+		for attachment in attachments:	# Iterate through the list of attachments ...
+			msg.attach(attachments[attachment])		# and attach them to the message
 
 		fromaddr = msg['From']		# From in its own string, required as an arg for send()
 		
@@ -254,12 +258,11 @@ class Handler():
 		pass
 	
 	def addAttach(self, button):
-		global path, attachment, attached
-		path, attachment, attached = setup_attachment()
+		global attachments
+		attachments = setup_attachment()
 	
 	def keyHandler(self, widget, event):
-		global html, text
-		print (Gdk.keyval_name(event.keyval))
+		
 		if Gdk.ModifierType.CONTROL_MASK & event.state:
 			if Gdk.keyval_name(event.keyval) == 'q':	# Quit the program
 				w.destroy()
@@ -267,19 +270,10 @@ class Handler():
 			elif Gdk.keyval_name(event.keyval) == 'Down':	# Attachment panel
 				if self.state == 0:
 					buttonAttach.show()
-					labelAttachment.hide()
 					self.state = 1
 				else:
 					buttonAttach.hide()
-					labelAttachment.show()
 					self.state = 0
-
-		if Gdk.keyval_name(event.keyval) == 'Return' and textBody.is_focus():		# User hit enter
-			changeMsgFormat('pc')
-
-		if Gdk.keyval_name(event.keyval) == 'BackSpace' and textBody.is_focus():	# User hit backspace
-			html = html[:-1]
-			text = text[:-1]
 
 #-----------------------------------------------------------------------
 # General Code
@@ -297,14 +291,8 @@ def get_iter_position(buffer):
 
 def text_inserted(buffer, iter, char, length):
 
-	global html, text
-
-	text += char
-	html += char
-
 	if tags_on:
 		iter.backward_chars(length)
-		print (tags_on)
 		for tag in tags_on:
 			if tag == 'bold':
 				buffer.apply_tag(tag_bold, get_iter_position(buffer), iter)
@@ -315,6 +303,29 @@ def text_inserted(buffer, iter, char, length):
 				w.queue_draw()
 
 #-----------------------------------------------------------------------
+
+def attachmentInput(widget, event):
+
+	global attachNameNew
+
+	if event.button == 3: # Right click
+
+		text = widget.get_child().get_text()
+
+		menuitemRemoveAttach.connect('button-press-event', removeAttachment, text, menuAttachments, widget)
+
+		menuAttachments.append(menuitemRemoveAttach)
+		menuAttachments.show_all()
+
+		menuAttachments.popup(None, None, None, None, 0, Gtk.get_current_event_time())
+
+def removeAttachment(*data):
+	global attachments, text
+	del attachments[data[2]]
+	data[3].popdown()
+	data[4].destroy()
+	data = []
+	text = ''
 
 def get_message_content():
 	
@@ -350,6 +361,8 @@ def body_format(text, html):
 	return partPLAINTEXT, partHTML
 	
 def setup_attachment():
+
+	global attachments, attachNameNew
 	
 	dialogFile = FileChooser()
 		
@@ -364,7 +377,8 @@ def setup_attachment():
 		print ('Attachment ' + path + ' chosen.')
 		attached = True
 
-	if attached:		# Attachment given		
+	if attached:		# Attachment given
+		
 		ctype, encoding = mimetypes.guess_type(path)
 		if ctype is None or encoding is not None:
 			ctype = 'application/octet-stream'
@@ -384,11 +398,40 @@ def setup_attachment():
 				attachment = MIMEBase(maintype, subtype)
 				attachment.set_payload(fp.read())
 		encoders.encode_base64(attachment)
-		attachment.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
 
-	return path, attachment, attached
+		attachName = os.path.basename(path)
+		print ('attachNameNew:',attachName)
+		attachment.add_header('Content-Disposition', 'attachment', filename=attachName)
+
+		attachNameNew = attachName
+
+		if len(attachName) >= 8:
+			attachNameNew = attachName[0:5] + '...'
+
+		eventBox = Gtk.EventBox()
+		eventBox.set_name('eventBox')
+		eventBox.add(Gtk.Label(label = attachNameNew))
+
+		if len(attachments) <= 0:
+			if attachName not in attachments:
+				boxAttachments.add(eventBox)
+				print ('Happening!')
+				boxAttachments.show_all()
+				eventBox.connect('button-press-event', attachmentInput)
+				eventBox = None
+		else:
+			print ('else')
+			menuItem = Gtk.MenuItem()
+			menuItem.label = attachNameNew
+			menuAttachmentsDropdown.append(menuItem)
+			menuAttachmentsDropdown.show_all()
+			menuAttachmentsDropdown.popup(None, None, None, None, 0, Gtk.get_current_event_time())
+
+		attachments[attachName] = attachment
+
+	return attachments
 	
-def msg_setup(partHTML):				
+def body_setup(partHTML):				
 		
 		text = get_message_content()		# Get the user's input for the content of the message
 		
@@ -434,23 +477,34 @@ def send(fromaddr, toaddr, msg):		# Sends the message, accepts the from address,
 def main():
 
 	# Global variables for the email
-	global attachment, server, msg, text, html, content
+	global server, msg, text, content
+	# GUI Global Variables - Random
+	global w, color
 	# GUI Global Variables - Buttons
-	global buttonAttach, buttonSend, w
+	global buttonAttach, buttonSend
 	# GUI Global Variables - Labels
-	global labelAttachment, labelFromVar
+	global labelFromVar
 	# GUI Global Variables - Entries
 	global entryTo, entryCC, entryBCC, entrySubject
 	# GUI Global Objects - TextViews/TextBuffers
 	global textBody, textBodyBuffer
-	# Gtk tag globals
+	# GUI Global Objects - Tags
 	global tag_bold, tag_italic, tag_underline, tags_on
+	# GUI Global Objects - Attachment Stuff
+	global menuAttachments, toolbutton2, boxAttachments, menuitemRemoveAttach, menubuttonAttachmentsDropdown
+	global menuAttachmentsDropdown, menuItemTemplate
+	# Global variables for attachments
+	global attachments, attachNames
 
 	# Variable setup
 	text = ''
-	html = '<html><body><p>'
+	tags_on = []		# For TextBuffer/TextView formatting
+	
+	# Attachment variables
+	attachments = {}	# For attachments ... DUH
+	attachNameNew = ''
+	attachNames = []
 	attached = False
-	tags_on = []
 
 	msg = MIMEMultipart('mixed')			# Initialize overarching message as msg
 	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the emai
@@ -461,6 +515,7 @@ def main():
 	
 	buttonAttach = builder.get_object('buttonAttach')
 	buttonSend = builder.get_object('buttonSend')
+	attachmentsBox = builder.get_object('attachmentsBox')
 	
 	entryTo = builder.get_object('entryTo')
 	entryCC = builder.get_object('entryCC')
@@ -475,17 +530,40 @@ def main():
 	tag_italic = textBodyBuffer.create_tag("italic", style=Pango.Style.ITALIC)
 	tag_underline = textBodyBuffer.create_tag("underline", underline=Pango.Underline.SINGLE)
 
-	labelAttachment = builder.get_object('labelAttachmentBar')
-	labelCC = builder.get_object('labelCC')
 	labelFromVar = builder.get_object('labelFromVar')
 
-	labelFromVar.set_text(credsUSER)
+	labelAttachments = builder.get_object('labelAttachments')
+	imageAttachment = builder.get_object('imageAttachment')
 	
+	menuAttachments = builder.get_object('menuAttachments')
+	toolbutton2 = builder.get_object('toolbutton2')
+	boxAttachments = builder.get_object('boxAttachments')
+	menuitemRemoveAttach = builder.get_object('menuitemRemoveAttach')
+	menuItemTemplate = builder.get_object('menuitemTemplate')
+	menubuttonAttachmentsDropdown = builder.get_object('menubuttonAttachmentsDropdown')
+	menuAttachmentsDropdown = builder.get_object('menuAttachmentsDropdown')
+
+	labelFromVar.set_text(credsUSER)
+
+	style_provider = Gtk.CssProvider()
+
+	with open('data/gtk.css', 'rb') as css:
+		css_data = css.read()
+
+	style_provider.load_from_data(css_data)	
+
+	Gtk.StyleContext.add_provider_for_screen(
+	    Gdk.Screen.get_default(), 
+	    style_provider,     
+	    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+	)
+
 	w = builder.get_object('window1')
 	w.show_all()
-	
+
 	buttonAttach.hide()
-	
+	menuItemTemplate.hide()
+
 	Gtk.main()
 
 	quit()

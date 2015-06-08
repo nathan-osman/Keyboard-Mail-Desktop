@@ -1,0 +1,9 @@
+#eventBox GtkLabel
+{
+    border-radius: 5px;
+    border-color: #434343;
+	border-style: solid;
+	border-width: 1px;
+	padding-right: 2px;
+	padding-left: 2px;
+}

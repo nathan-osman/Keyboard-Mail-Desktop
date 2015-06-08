@@ -2,7 +2,29 @@
 <!-- Generated with glade 3.16.1 -->
 <interface>
   <requires lib="gtk+" version="3.10"/>
+  <object class="GtkMenu" id="menuAttachments">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitemRemoveAttach">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Remove attachment</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="menuAttachmentsDropdown">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitemTemplate">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+    </child>
+  </object>
   <object class="GtkWindow" id="window1">
+    <property name="name">windowMain</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Keyboard Mail - Edit Message</property>
     <property name="modal">True</property>
@@ -231,6 +253,7 @@
                   <object class="GtkEntry" id="entryTo">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="margin_left">3</property>
                     <property name="hexpand">True</property>
                   </object>
                   <packing>
@@ -244,6 +267,7 @@
                   <object class="GtkEntry" id="entryCC">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="margin_left">3</property>
                     <property name="margin_top">2</property>
                     <property name="hexpand">True</property>
                   </object>
@@ -307,6 +331,7 @@
                 <child>
                   <object class="GtkLabel" id="labelFromVar">
                     <property name="visible">True</property>
+                    <property name="sensitive">False</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">label</property>
                   </object>
@@ -372,6 +397,7 @@
                   <object class="GtkEntry" id="entrySubject">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="margin_left">3</property>
                     <property name="margin_right">10</property>
                     <property name="hexpand">True</property>
                   </object>
@@ -618,42 +644,76 @@
               <object class="GtkToolbar" id="toolbar2">
                 <property name="can_focus">False</property>
                 <property name="toolbar_style">both</property>
-                <property name="show_arrow">False</property>
                 <child>
                   <object class="GtkToolButton" id="buttonAttach">
+                    <property name="name">buttonAttach</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Add Attachment</property>
-                    <property name="use_underline">True</property>
                     <property name="stock_id">gtk-add</property>
                     <signal name="clicked" handler="addAttach" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="homogeneous">True</property>
+                    <property name="homogeneous">False</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkToolItem" id="labelAttachmentBar">
+                  <object class="GtkToolItem" id="toolbutton1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="margin_left">5</property>
                     <child>
-                      <object class="GtkLabel" id="label1">
+                      <object class="GtkLabel" id="labelAttachments">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="xpad">3</property>
                         <property name="label" translatable="yes">Attachments</property>
                       </object>
                     </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="homogeneous">True</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolItem" id="toolbutton2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkBox" id="boxAttachments">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkMenuButton" id="menubuttonAttachmentsDropdown">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="relief">none</property>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
