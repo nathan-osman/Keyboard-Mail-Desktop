@@ -253,7 +253,8 @@
                   <object class="GtkEntry" id="entryTo">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="margin_left">3</property>
+                    <property name="margin_left">5</property>
+                    <property name="margin_right">3</property>
                     <property name="hexpand">True</property>
                   </object>
                   <packing>
@@ -267,7 +268,8 @@
                   <object class="GtkEntry" id="entryCC">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="margin_left">3</property>
+                    <property name="margin_left">5</property>
+                    <property name="margin_right">3</property>
                     <property name="margin_top">2</property>
                     <property name="hexpand">True</property>
                   </object>
@@ -397,7 +399,7 @@
                   <object class="GtkEntry" id="entrySubject">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="margin_left">3</property>
+                    <property name="margin_left">5</property>
                     <property name="margin_right">10</property>
                     <property name="hexpand">True</property>
                   </object>

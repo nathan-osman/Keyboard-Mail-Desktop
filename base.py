@@ -7,7 +7,7 @@
 
 """Changelog:
 		Working on getting the display of multiple attachments beyond a certain number to work properly.
-		Currently they are not working in the slightest, and the approach I was coming at it from is 
+		Currently they are not working in the slightest, and the approach I was coming at it from is
 			flawed. This version will not display multiple attachments correctly.
 		Main change in this version is the inclusion of Gtk+ CSS theming via the gtk.css file in the data directory
 		UI still does not look as I would like it though.
@@ -34,46 +34,47 @@ from gi.repository import Gtk, Gdk, Pango
 from bs4 import BeautifulSoup
 
 # Custom Modules
-from CREDENTIALS 			import USERNAME as credsUSER, PASSWORD as credsPASS
+from CREDENTIALS import USERNAME as creds_user, PASSWORD as creds_pass
 
+#-----------------------------------------------------------------------
 # GUI Code
 #-----------------------------------------------------------------------
 
 class FileChooser():
-	
+
 	def __init__(self):
-	
+
 		self.path = None
-		
+
 		dia = Gtk.FileChooserDialog("Please choose a file", w,
 			Gtk.FileChooserAction.OPEN,
 			(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
 			Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-		
+
 		self.add_filters(dia)
-		
+
 		response = dia.run()
-		
+
 		if response == Gtk.ResponseType.OK:
 			self.path = dia.get_filename()
 		elif response == Gtk.ResponseType.CANCEL:
 			path = None
-			
+
 		dia.destroy()
-		
+
 	def add_filters(self, dia):
 		filter_any = Gtk.FileFilter()
 		filter_any.set_name("All files")
 		filter_any.add_pattern("*")
 		dia.add_filter(filter_any)
-		
+
 		filter_py = Gtk.FileFilter()
 		filter_py.set_name("Python files")
 		filter_py.add_pattern("*.py")
 		filter_py.add_pattern("*.pyc")
 		filter_py.add_pattern("*.pyo")
 		dia.add_filter(filter_py)
-		
+
 		filter_img = Gtk.FileFilter()
 		filter_img.set_name('Image files')
 		with open('data/imglist', 'r') as imgList:
@@ -82,7 +83,7 @@ class FileChooser():
 				pattern = '*.' + img
 				filter_img.add_pattern(pattern)
 		dia.add_filter(filter_img)
-		
+
 		filter_docs = Gtk.FileFilter()
 		filter_docs.set_name("Document files")
 		with open('data/doclist', 'r') as docList:
@@ -91,7 +92,7 @@ class FileChooser():
 				pattern = '*.' + doc
 				filter_docs.add_pattern(pattern)
 		dia.add_filter(filter_docs)
-		
+
 		filter_spread = Gtk.FileFilter()
 		filter_spread.set_name("Spreadsheet files")
 		with open('data/spreadlist', 'r') as spreadList:
@@ -100,7 +101,7 @@ class FileChooser():
 				pattern = '*.' + spread
 				filter_spread.add_pattern(pattern)
 		dia.add_filter(filter_spread)
-		
+
 		filter_present = Gtk.FileFilter()
 		filter_present.set_name("Presentation files")
 		with open('data/presentlist', 'r') as presentList:
@@ -108,18 +109,18 @@ class FileChooser():
 				present = present.strip('\n')
 				pattern = '*.' + present
 				filter_present.add_pattern(pattern)
-		dia.add_filter(filter_present)		
+		dia.add_filter(filter_present)
 
 class Handler():
-	
+
 	def __init__(self):
 		self.state = 0
-	
+
 	def onDeleteWindow(self, *args):
 		Gtk.main_quit(*args)
-	
+
 	def onSendClicked(self, button):
-		
+
 		# Variables for text
 		global to, cc, bcc, subject, partPLAINTEXT, partHTML
 		# Variables for objects
@@ -133,9 +134,9 @@ class Handler():
 		partPLAINTEXT = textBodyBuffer.get_text(start, end, True)
 
 		# Below is the serialization code for exporting with format tags
-		format = textBodyBuffer.register_serialize_tagset()	
+		format = textBodyBuffer.register_serialize_tagset()
 		exported = textBodyBuffer.serialize(textBodyBuffer, format, start, end)
-		
+
 		exported = exported.decode("latin-1")
 
 		exported = exported.split('<text_view_markup>', 1)
@@ -175,35 +176,35 @@ class Handler():
 		setup_server()
 
 		partPLAINTEXT, partHTML = body_setup(partHTML)
-	
+
 		content.attach(partPLAINTEXT)	# Add the MIMEText object for the plaintext to the message
 		content.attach(partHTML)		# Add the MIMEText object for the HTML to the message
-		
+
 		logging.info('Message length ' +str(len(partPLAINTEXT)))
 		print (('Message length ' +str(len(partPLAINTEXT))))
-		
+
 		msg.attach(content)			# Attach the content to the message
 
 		for attachment in attachments:	# Iterate through the list of attachments ...
 			msg.attach(attachments[attachment])		# and attach them to the message
 
 		fromaddr = msg['From']		# From in its own string, required as an arg for send()
-		
+
 		# Need to find a way to set the msg['To'] field to have multiple recipients because it will be faster
 		# Currently, each message is sent individually to each recipient
 		for recip in recipients:		# Iterate through all of the recipients and ...
 			send(fromaddr, recip, msg)	# Call the send function individually for each
-		
+
 		print ('Message sent successfully')
 		logging.info('Message sent successfully')
-		
+
 		server.quit()						# Done, disconnect from the server
-		
+
 		print ('Server disconnected')
 		logging.info('Server disconnected')
 
 		quit()
-			
+
 	def bold(self, button):
 		global tags_on
 		name = button.get_name()
@@ -211,7 +212,7 @@ class Handler():
 			tags_on.append('bold')
 		elif button.get_active() != True:	# Button is "up"/disabled
 			del tags_on[tags_on.index('bold')]
-			
+
 	def italic(self, button):
 		global tags_on
 		name = button.get_name()
@@ -220,7 +221,7 @@ class Handler():
 		elif button.get_active() != True:	# Button is "up"/disabled
 			print (button.get_name())
 			del tags_on[tags_on.index('italic')]
-	
+
 	def underline(self, button):
 		global tags_on
 		name = button.get_name()
@@ -228,7 +229,7 @@ class Handler():
 			tags_on.append('underline')
 		elif button.get_active() != True:	# Button is "up"/disabled
 			del tags_on[tags_on.index('underline')]
-	
+
 	def alignToggled(self, radiobutton):
 		if radiobutton.get_active():
 			if radiobutton.get_name() == 'alignLeft':
@@ -248,21 +249,21 @@ class Handler():
 				print ('RightOff')
 			elif radiobutton.get_name() == 'alignFill':
 				print ('FillOff')
-	
+
 	def undo(self, button):
 		print ('Undo')
 		pass
-	
+
 	def redo(self, button):
 		print ('Redo')
 		pass
-	
+
 	def addAttach(self, button):
 		global attachments
 		attachments = setup_attachment()
-	
+
 	def keyHandler(self, widget, event):
-		
+
 		if Gdk.ModifierType.CONTROL_MASK & event.state:
 			if Gdk.keyval_name(event.keyval) == 'q':	# Quit the program
 				w.destroy()
@@ -328,18 +329,18 @@ def removeAttachment(*data):
 	text = ''
 
 def get_message_content():
-	
+
 	global recipients
-	
+
 	to = entryTo.get_text()
 	cc = entryCC.get_text()
 	bcc = entryBCC.get_text()
 	text = entrySubject.get_text()
 
 	msg['Subject'] 	= subject				# Subject
-	msg['From']		= credsUSER				# From - set by the credential.py file
+	msg['From']		= creds_user				# From - set by the credential.py file
 	recipients		= to.split()			# All of the recipients in list form
-	
+
 	if recipients == '':					# Make sure that there is at least one recipient (need email confirmation)
 		logging.info('No recipients given')
 		print ("At least one recipient is required. Otherwise, you're",
@@ -347,27 +348,27 @@ def get_message_content():
 				"then dies.")
 		print ('Returning you to the start')
 		main()
-	
+
 	msg['To'] 		= COMMASPACE.join(recipients)	# One long string of recipients, just for MIME standards, not technically needed.
 	msg['Date']		= str(formatdate(localtime=True))
-	
+
 	return text
 
 def body_format(text, html):
-	
+
 	partPLAINTEXT	= MIMEText(text, 'plain')	# Create MIMEText object for the plaintext version of the body
 	partHTML		= MIMEText(html, 'html')	# Create MIMEText object for the HTML version of the body
-	
+
 	return partPLAINTEXT, partHTML
-	
+
 def setup_attachment():
 
 	global attachments, attachNameNew
-	
+
 	dialogFile = FileChooser()
-		
+
 	path = dialogFile.path
-	
+
 	if path == None:		# No attachment chosen - acceptable result
 		logging.info('No attachment selected!')
 		print ('No attachment selected!')
@@ -378,12 +379,12 @@ def setup_attachment():
 		attached = True
 
 	if attached:		# Attachment given
-		
+
 		ctype, encoding = mimetypes.guess_type(path)
 		if ctype is None or encoding is not None:
 			ctype = 'application/octet-stream'
 		maintype, subtype = ctype.split('/', 1)
-		
+
 		if maintype == 'text':
 			with open(path) as fp:
 				attachment = MIMEText(fp.read(), _subtype=subtype)
@@ -430,35 +431,35 @@ def setup_attachment():
 		attachments[attachName] = attachment
 
 	return attachments
-	
-def body_setup(partHTML):				
-		
+
+def body_setup(partHTML):
+
 		text = get_message_content()		# Get the user's input for the content of the message
-		
+
 		partPLAINTEXT, partHTML = body_format(text, partHTML)	# Get the message parts (plaintext and HTML) for MIME
-		
+
 		logging.info('Message content objects successfully created.')
 		print ('Message content objects successfully created.')
-	
+
 		return partPLAINTEXT, partHTML
-		
+
 def setup_server():
-	
+
 	global server
 
 	# Set up connection to server so we don't have repeat it each time
 	try:
 		server = smtplib.SMTP('smtp.gmail.com:587')	# Connect to smtp.gmail.com, port 587
-		
+
 		logging.info('Connected to Gmail SMTP server successfully')
-		
+
 		server.set_debuglevel(1)					# Set the debug level so we get verbose feedback from the server
 		server.ehlo()								# Say EHLO to the server
 		server.starttls()							# Attempt to start TLS
-		server.login(credsUSER, credsPASS)			# Log in to the site with the provided username & password (stored in credentials.py)
-		
+		server.login(creds_user, creds_pass)			# Log in to the site with the provided username & password (stored in credentials.py)
+
 		logging.info('User logged in successfully')
-		
+
 	except Exception as e:
 		logging.error('Error during SMTP')
 		logging.error('Error:',e.args)
@@ -499,7 +500,7 @@ def main():
 	# Variable setup
 	text = ''
 	tags_on = []		# For TextBuffer/TextView formatting
-	
+
 	# Attachment variables
 	attachments = {}	# For attachments ... DUH
 	attachNameNew = ''
@@ -508,15 +509,15 @@ def main():
 
 	msg = MIMEMultipart('mixed')			# Initialize overarching message as msg
 	content = MIMEMultipart('alternative')	# This takes the text/html and stores it for the emai
-	
+
 	builder = Gtk.Builder()
 	builder.add_from_file('data/editor.glade')
 	builder.connect_signals(Handler())
-	
+
 	buttonAttach = builder.get_object('buttonAttach')
 	buttonSend = builder.get_object('buttonSend')
 	attachmentsBox = builder.get_object('attachmentsBox')
-	
+
 	entryTo = builder.get_object('entryTo')
 	entryCC = builder.get_object('entryCC')
 	entryBCC = builder.get_object('entryBCC')
@@ -524,7 +525,7 @@ def main():
 
 	textBody = builder.get_object('textviewBody')
 	textBodyBuffer = textBody.get_buffer()
-	
+
 	textBodyBuffer.connect_after('insert-text', text_inserted)
 	tag_bold = textBodyBuffer.create_tag("bold", weight=Pango.Weight.BOLD)
 	tag_italic = textBodyBuffer.create_tag("italic", style=Pango.Style.ITALIC)
@@ -534,7 +535,7 @@ def main():
 
 	labelAttachments = builder.get_object('labelAttachments')
 	imageAttachment = builder.get_object('imageAttachment')
-	
+
 	menuAttachments = builder.get_object('menuAttachments')
 	toolbutton2 = builder.get_object('toolbutton2')
 	boxAttachments = builder.get_object('boxAttachments')
@@ -543,18 +544,18 @@ def main():
 	menubuttonAttachmentsDropdown = builder.get_object('menubuttonAttachmentsDropdown')
 	menuAttachmentsDropdown = builder.get_object('menuAttachmentsDropdown')
 
-	labelFromVar.set_text(credsUSER)
+	labelFromVar.set_text(creds_user)
 
 	style_provider = Gtk.CssProvider()
 
 	with open('data/gtk.css', 'rb') as css:
 		css_data = css.read()
 
-	style_provider.load_from_data(css_data)	
+	style_provider.load_from_data(css_data)
 
 	Gtk.StyleContext.add_provider_for_screen(
-	    Gdk.Screen.get_default(), 
-	    style_provider,     
+	    Gdk.Screen.get_default(),
+	    style_provider,
 	    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 	)
 
@@ -569,19 +570,19 @@ def main():
 	quit()
 
 if __name__ =='__main__':
-	
+
 	global attached
-	
+
 	attached = False
-	
+
 	logPath = ('data/logs/'+time.strftime("%m-%d-%Y")+'_'+time.strftime("%I-%M-%S %p")+'.log')
-	
+
 	logging.basicConfig(
-		format='%(asctime)s :: %(levelname)s :: %(message)s', 
+		format='%(asctime)s :: %(levelname)s :: %(message)s',
 		datefmt='%m/%d/%Y %I:%M:%S %p',
-		filename=logPath, 
+		filename=logPath,
 		level=logging.DEBUG)
-			
+
 	logging.info('Program Start')
-	
+
 	main()
