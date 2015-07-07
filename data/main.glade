@@ -2,7 +2,12 @@
 <!-- Generated with glade 3.16.1 -->
 <interface>
   <requires lib="gtk+" version="3.10"/>
-  <object class="GtkImage" id="image2">
+  <object class="GtkImage" id="imageSpam">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">mail-spam-grey.svg</property>
+  </object>
+  <object class="GtkImage" id="imageTrash">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="icon_name">user-trash</property>
@@ -24,6 +29,7 @@
         <property name="spacing">2</property>
         <child>
           <object class="GtkBox" id="boxSidebar">
+            <property name="name">boxSidebar</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="margin_left">3</property>
@@ -32,6 +38,7 @@
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkBox" id="boxSidebar-curAccount">
+                <property name="name">boxSidebar-curAccount</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="margin_left">3</property>
@@ -87,12 +94,14 @@
             </child>
             <child>
               <object class="GtkBox" id="boxMailboxes">
+                <property name="name">boxMailboxes</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="margin_top">20</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkExpander" id="expanderMailboxes">
+                    <property name="name">expanderMailboxes</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="margin_left">10</property>
@@ -149,12 +158,15 @@
                 <child>
                   <object class="GtkButton" id="buttonSpam">
                     <property name="label" translatable="yes">Spam</property>
+                    <property name="name">buttonSpam</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <property name="margin_left">10</property>
                     <property name="margin_right">40</property>
+                    <property name="image">imageSpam</property>
                     <property name="relief">none</property>
+                    <property name="always_show_image">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -165,12 +177,13 @@
                 <child>
                   <object class="GtkButton" id="buttonTrash">
                     <property name="label" translatable="yes">Trash</property>
+                    <property name="name">buttonTrash</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <property name="margin_left">10</property>
                     <property name="margin_right">40</property>
-                    <property name="image">image2</property>
+                    <property name="image">imageTrash</property>
                     <property name="relief">none</property>
                     <property name="yalign">0.47999998927116394</property>
                     <property name="always_show_image">True</property>
@@ -211,6 +224,7 @@
         </child>
         <child>
           <object class="GtkBox" id="boxView">
+            <property name="name">boxView</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="margin_right">3</property>

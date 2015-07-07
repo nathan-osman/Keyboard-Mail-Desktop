@@ -110,10 +110,15 @@ if __name__ == "__main__":
 
 	labelAccount.set_text(creds_user.split('@')[0])
 	imageMail = builder.get_object('imageMail')
+	imageSpam = builder.get_object('imageSpam')
 
 	pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale('data/assets/envelope-grey.svg', 21, 24, False)
 
 	imageMail.set_from_pixbuf(pixbuf)
+
+	pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale('data/assets/mail-spam-grey.svg', 21, 24, False)
+
+	imageSpam.set_from_pixbuf(pixbuf)
 
 	style_provider = Gtk.CssProvider()
 
