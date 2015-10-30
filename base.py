@@ -523,6 +523,14 @@ def main():
 	entryBCC = builder.get_object('entryBCC')
 	entrySubject = builder.get_object('entrySubject')
 
+	grid1 = builder.get_object('grid1')
+	grid1.set_focus_chain([
+		entryTo,
+		entryCC,
+		entryBCC,
+		entrySubject,
+	])
+
 	textBody = builder.get_object('textviewBody')
 	textBodyBuffer = textBody.get_buffer()
 
